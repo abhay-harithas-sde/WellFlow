@@ -1,0 +1,134 @@
+{
+  "nav": {
+    "features": "Características",
+    "howItWorks": "Cómo Funciona",
+    "integrations": "Integraciones",
+    "testimonials": "Testimonios",
+    "pricing": "Precios",
+    "cta": "Empieza Gratis"
+  },
+  "hero": {
+    "headline": "Tu Compañero de Bienestar por Voz",
+    "subheadline": "WellFlow te guía a través de ejercicios de respiración, sesiones de mindfulness y rutinas de bienestar diarias — sin manos, solo hablando.",
+    "cta": "Inicia Tu Prueba Gratuita",
+    "trustUsers": "Más de 50,000 usuarios",
+    "trustRating": "4.8 estrellas en App Store",
+    "trustAward": "Mejor App de Bienestar 2024"
+  },
+  "features": {
+    "title": "Todo Lo Que Necesitas para Prosperar",
+    "cta": "Explorar Todas las Características",
+    "items": {
+      "voice": {
+        "title": "Interacción por Voz",
+        "desc": "Habla de forma natural para iniciar sesiones, establecer recordatorios y recibir orientación — sin tocar la pantalla."
+      },
+      "breathing": {
+        "title": "Ejercicios de Respiración",
+        "desc": "Técnicas de respiración guiadas para reducir el estrés y mejorar la concentración en minutos."
+      },
+      "mindfulness": {
+        "title": "Sesiones de Mindfulness",
+        "desc": "Prácticas de meditación y mindfulness personalizadas según tu estado de ánimo y horario."
+      },
+      "stress": {
+        "title": "Alivio del Estrés",
+        "desc": "Técnicas basadas en evidencia para ayudarte a relajarte y recuperarte de los estresores diarios."
+      },
+      "reminders": {
+        "title": "Recordatorios de Rutina",
+        "desc": "Recordatorios inteligentes que se adaptan a tus hábitos y te impulsan hacia rutinas de bienestar consistentes."
+      },
+      "healthSync": {
+        "title": "Sincronización de Salud",
+        "desc": "Se sincroniza perfectamente con Apple Health y Google Fit para darte una imagen completa de tu bienestar."
+      },
+      "wearable": {
+        "title": "Integración con Wearables",
+        "desc": "Conecta tu smartwatch o rastreador de actividad para sesiones conscientes de tus biométricas en tiempo real."
+      },
+      "community": {
+        "title": "Comunidad",
+        "desc": "Únete a una comunidad de apoyo de buscadores de bienestar que comparten metas, consejos y aliento."
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "Cómo Funciona WellFlow",
+    "cta": "Pruébalo Ahora",
+    "steps": [
+      {
+        "title": "Configúrate en Segundos",
+        "desc": "Descarga WellFlow, crea tu perfil y conecta tus aplicaciones y dispositivos de salud preferidos."
+      },
+      {
+        "title": "Expresa Tu Intención",
+        "desc": "Simplemente di lo que necesitas — 'Necesito relajarme' o 'Inicia una sesión de respiración de 5 minutos' — y WellFlow escucha."
+      },
+      {
+        "title": "Recibe Respuestas Guiadas",
+        "desc": "WellFlow responde con una sesión de bienestar guiada por voz y personalizada según tu estado actual."
+      },
+      {
+        "title": "Sigue Tu Progreso",
+        "desc": "Revisa tu trayectoria de bienestar con información detallada, rachas e informes de progreso a lo largo del tiempo."
+      }
+    ]
+  },
+  "integrations": {
+    "title": "Funciona con Tus Apps Favoritas",
+    "intro": "Conecta WellFlow a las herramientas que ya usas para una experiencia de bienestar unificada y sin interrupciones.",
+    "categories": {
+      "healthFitness": "Salud y Fitness",
+      "calendar": "Calendario",
+      "wearables": "Wearables",
+      "messaging": "Mensajería"
+    }
+  },
+  "testimonials": {
+    "title": "Amado por Miles",
+    "aggregate": "4.8 de 5 estrellas de más de 12,000 reseñas"
+  },
+  "pricing": {
+    "title": "Precios Simples y Transparentes",
+    "monthly": "Mensual",
+    "annual": "Anual",
+    "annualSavings": "Ahorra 20%",
+    "guarantee": "Garantía de devolución de dinero de 30 días. Sin preguntas.",
+    "tiers": {
+      "free": {
+        "name": "Gratis",
+        "cta": "Empieza Gratis"
+      },
+      "premium": {
+        "name": "Premium",
+        "cta": "Iniciar Prueba Gratuita",
+        "badge": "Más Popular"
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Tu camino impulsado por voz hacia el bienestar diario.",
+    "copyright": "© {year} WellFlow. Todos los derechos reservados.",
+    "legal": {
+      "privacy": "Política de Privacidad",
+      "terms": "Términos de Servicio",
+      "cookie": "Política de Cookies",
+      "contact": "Contacto",
+      "faq": "Preguntas Frecuentes"
+    },
+    "social": {
+      "twitter": "Twitter",
+      "instagram": "Instagram"
+    }
+  },
+  "cookie": {
+    "message": "Usamos cookies para mejorar tu experiencia y analizar el tráfico del sitio. Al aceptar, consientes el uso de cookies de análisis.",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "policy": "Política de Cookies"
+  },
+  "a11y": {
+    "skipToMain": "Saltar al contenido principal"
+  }
+}

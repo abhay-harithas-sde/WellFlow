@@ -1,0 +1,134 @@
+{
+  "nav": {
+    "features": "Features",
+    "howItWorks": "How It Works",
+    "integrations": "Integrations",
+    "testimonials": "Testimonials",
+    "pricing": "Pricing",
+    "cta": "Get Started Free"
+  },
+  "hero": {
+    "headline": "Your Voice-Powered Wellness Companion",
+    "subheadline": "WellFlow guides you through breathing exercises, mindfulness sessions, and daily wellness routines — all hands-free, just by speaking.",
+    "cta": "Start Your Free Trial",
+    "trustUsers": "50,000+ users",
+    "trustRating": "4.8 stars on App Store",
+    "trustAward": "Best Wellness App 2024"
+  },
+  "features": {
+    "title": "Everything You Need to Thrive",
+    "cta": "Explore All Features",
+    "items": {
+      "voice": {
+        "title": "Voice Interaction",
+        "desc": "Speak naturally to start sessions, set reminders, and get guidance — no tapping required."
+      },
+      "breathing": {
+        "title": "Breathing Exercises",
+        "desc": "Guided breathing techniques to reduce stress and improve focus in minutes."
+      },
+      "mindfulness": {
+        "title": "Mindfulness Sessions",
+        "desc": "Personalized meditation and mindfulness practices tailored to your mood and schedule."
+      },
+      "stress": {
+        "title": "Stress Relief",
+        "desc": "Evidence-based techniques to help you unwind and recover from daily stressors."
+      },
+      "reminders": {
+        "title": "Routine Reminders",
+        "desc": "Smart reminders that adapt to your habits and nudge you toward consistent wellness routines."
+      },
+      "healthSync": {
+        "title": "Health Sync",
+        "desc": "Seamlessly syncs with Apple Health and Google Fit to give you a complete wellness picture."
+      },
+      "wearable": {
+        "title": "Wearable Integration",
+        "desc": "Connect your smartwatch or fitness tracker for real-time biometric-aware sessions."
+      },
+      "community": {
+        "title": "Community",
+        "desc": "Join a supportive community of wellness seekers sharing goals, tips, and encouragement."
+      }
+    }
+  },
+  "howItWorks": {
+    "title": "How WellFlow Works",
+    "cta": "Try It Now",
+    "steps": [
+      {
+        "title": "Set Up in Seconds",
+        "desc": "Download WellFlow, create your profile, and connect your preferred health apps and devices."
+      },
+      {
+        "title": "Speak Your Intent",
+        "desc": "Simply say what you need — 'I need to relax' or 'Start a 5-minute breathing session' — and WellFlow listens."
+      },
+      {
+        "title": "Receive Guided Responses",
+        "desc": "WellFlow responds with a personalized, voice-guided wellness session tailored to your current state."
+      },
+      {
+        "title": "Track Your Progress",
+        "desc": "Review your wellness journey with detailed insights, streaks, and progress reports over time."
+      }
+    ]
+  },
+  "integrations": {
+    "title": "Works With Your Favorite Apps",
+    "intro": "Connect WellFlow to the tools you already use for a seamless, unified wellness experience.",
+    "categories": {
+      "healthFitness": "Health & Fitness",
+      "calendar": "Calendar",
+      "wearables": "Wearables",
+      "messaging": "Messaging"
+    }
+  },
+  "testimonials": {
+    "title": "Loved by Thousands",
+    "aggregate": "4.8 out of 5 stars from over 12,000 reviews"
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "annualSavings": "Save 20%",
+    "guarantee": "30-day money-back guarantee. No questions asked.",
+    "tiers": {
+      "free": {
+        "name": "Free",
+        "cta": "Get Started Free"
+      },
+      "premium": {
+        "name": "Premium",
+        "cta": "Start Free Trial",
+        "badge": "Most Popular"
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Your voice-powered path to daily wellness.",
+    "copyright": "© {year} WellFlow. All rights reserved.",
+    "legal": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "cookie": "Cookie Policy",
+      "contact": "Contact",
+      "faq": "FAQ"
+    },
+    "social": {
+      "twitter": "Twitter",
+      "instagram": "Instagram"
+    }
+  },
+  "cookie": {
+    "message": "We use cookies to improve your experience and analyze site traffic. By accepting, you consent to our use of analytics cookies.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "policy": "Cookie Policy"
+  },
+  "a11y": {
+    "skipToMain": "Skip to main content"
+  }
+}
