@@ -32,7 +32,7 @@ type ConsentState = {
 // Pure logic extracted from useCookieConsent.ts
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = 'wf_cookie_consent';
+const STORAGE_KEY = 'wellflow_cookie_consent';
 
 function readFromStorage(store: Map<string, string>): ConsentRecord | null {
   try {

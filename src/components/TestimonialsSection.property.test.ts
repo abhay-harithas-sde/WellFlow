@@ -162,3 +162,39 @@ describe('TestimonialsSection — Property 10: Testimonial carousel keyboard nav
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Property 4: Aggregate Rating Computation
+// ---------------------------------------------------------------------------
+
+/**
+ * Pure implementation of computeAggregateRating (mirrors TestimonialsSection.tsx)
+ */
+function computeAggregateRating(ratings: number[]): number {
+  if (ratings.length === 0) return 0;
+  const sum = ratings.reduce((acc, r) => acc + r, 0);
+  return Math.round((sum / ratings.length) * 10) / 10;
+}
+
+describe('TestimonialsSection — Property 4: Aggregate rating computation', () => {
+  /**
+   * P4: For any non-empty list of ratings in [1, 5], the computed aggregate
+   * equals the arithmetic mean rounded to one decimal place.
+   * Validates: Requirements 9.4
+   */
+  it('P4: aggregate rating equals arithmetic mean rounded to one decimal for any non-empty ratings in [1,5]', () => {
+    // Feature: website-completion-murf-wellflow, Property 4: For any non-empty list of testimonials with ratings in [1, 5], computed aggregate equals arithmetic mean rounded to one decimal
+    fc.assert(
+      fc.property(
+        fc.array(fc.float({ min: 1, max: 5, noNaN: true }), { minLength: 1 }),
+        (ratings) => {
+          const sum = ratings.reduce((acc, r) => acc + r, 0);
+          const expected = Math.round((sum / ratings.length) * 10) / 10;
+          const actual = computeAggregateRating(ratings);
+          expect(actual).toBe(expected);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});

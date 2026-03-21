@@ -4,6 +4,7 @@ module.exports = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
@@ -11,6 +12,7 @@ module.exports = {
         brand: {
           50: '#f0fdf4',
           100: '#dcfce7',
+          200: '#bbf7d0',
           500: '#22c55e',
           600: '#16a34a',
           700: '#15803d',

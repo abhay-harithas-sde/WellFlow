@@ -1,5 +1,157 @@
+import * as fc from 'fast-check';
+
+// Feature: website-completion-murf-wellflow, Property 11: For any <img> or Next.js <Image> element rendered by the website, the element has a non-empty alt attribute
+
+/**
+ * Property-based test for image alt text presence
+ * Property 11: For any <img> or Next.js <Image> element rendered by the website,
+ * the element has a non-empty alt attribute.
+ * Validates: Requirements 17.3
+ *
+ * Pure logic tests (node environment, no DOM).
+ * Models an image element as { src: string, alt: string } and verifies
+ * that the alt attribute is a non-empty, non-whitespace-only string.
+ */
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/** Minimal representation of an image element's required attributes. */
+interface ImageElement {
+  src: string;
+  alt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Pure alt-text presence logic
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true when the image element has a non-empty alt attribute.
+ * An alt consisting solely of whitespace is considered empty (WCAG 2.1).
+ */
+function imageHasNonEmptyAlt(img: ImageElement): boolean {
+  return img.alt.trim().length > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Arbitraries
+// ---------------------------------------------------------------------------
+
+/** Any non-empty, non-whitespace-only string suitable for alt text. */
+const nonEmptyStringArb: fc.Arbitrary<string> = fc
+  .string({ minLength: 1, maxLength: 200 })
+  .filter((s) => s.trim().length > 0);
+
+/** Any non-empty string suitable for an image src. */
+const srcArb: fc.Arbitrary<string> = fc.webUrl();
+
+/** An image element with a valid (non-empty) alt attribute. */
+const imageWithAltArb: fc.Arbitrary<ImageElement> = fc.record({
+  src: srcArb,
+  alt: nonEmptyStringArb,
+});
+
+/** An image element with an empty alt attribute — a violation. */
+const imageWithEmptyAltArb: fc.Arbitrary<ImageElement> = fc.record({
+  src: srcArb,
+  alt: fc.oneof(
+    fc.constant(''),
+    fc.stringOf(fc.constantFrom(' ', '\t', '\n'), { minLength: 1, maxLength: 10 })
+  ),
+});
+
+// ---------------------------------------------------------------------------
+// Property 11 tests
+// ---------------------------------------------------------------------------
+
+describe('ImageAccessibility — Property 11: Image elements have non-empty alt attribute', () => {
+  /**
+   * P11a: For any image element with a non-empty alt string,
+   * imageHasNonEmptyAlt returns true.
+   * Validates: Requirements 17.3
+   */
+  it('P11a: image elements with non-empty alt pass the alt-presence check', () => {
+    // Feature: website-completion-murf-wellflow, Property 11: For any <img> or Next.js <Image> element rendered by the website, the element has a non-empty alt attribute
+    fc.assert(
+      fc.property(imageWithAltArb, (img) => {
+        expect(imageHasNonEmptyAlt(img)).toBe(true);
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * P11b: For any image element with an empty or whitespace-only alt,
+   * imageHasNonEmptyAlt returns false (violation detected).
+   * Validates: Requirements 17.3
+   */
+  it('P11b: image elements with empty or whitespace-only alt fail the alt-presence check', () => {
+    // Feature: website-completion-murf-wellflow, Property 11: For any <img> or Next.js <Image> element rendered by the website, the element has a non-empty alt attribute
+    fc.assert(
+      fc.property(imageWithEmptyAltArb, (img) => {
+        expect(imageHasNonEmptyAlt(img)).toBe(false);
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * P11c: The alt-presence invariant holds for all known image elements
+   * in the codebase — each must have a non-empty alt attribute.
+   * Validates: Requirements 17.3
+   */
+  it('P11c: all known image elements in the codebase have non-empty alt attributes', () => {
+    // Feature: website-completion-murf-wellflow, Property 11: For any <img> or Next.js <Image> element rendered by the website, the element has a non-empty alt attribute
+    const knownImages: ImageElement[] = [
+      { src: '/hero-visual.png', alt: 'WellFlow voice-powered wellness experience' },
+      { src: '/integrations/apple-health.svg', alt: 'Apple Health' },
+      { src: '/integrations/google-fit.svg', alt: 'Google Fit' },
+      { src: '/integrations/fitbit.svg', alt: 'Fitbit' },
+      { src: '/integrations/garmin.svg', alt: 'Garmin' },
+      { src: '/integrations/google-calendar.svg', alt: 'Google Calendar' },
+      { src: '/integrations/outlook.svg', alt: 'Outlook' },
+      { src: '/integrations/slack.svg', alt: 'Slack' },
+      { src: '/integrations/whatsapp.svg', alt: 'WhatsApp' },
+    ];
+
+    fc.assert(
+      fc.property(fc.constantFrom(...knownImages), (img) => {
+        expect(imageHasNonEmptyAlt(img)).toBe(true);
+      }),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * P11d: For any whitespace-only alt string (any combination of spaces, tabs,
+   * newlines), imageHasNonEmptyAlt always returns false.
+   * Validates: Requirements 17.3
+   */
+  it('P11d: whitespace-only alt strings always fail the alt-presence check', () => {
+    // Feature: website-completion-murf-wellflow, Property 11: For any <img> or Next.js <Image> element rendered by the website, the element has a non-empty alt attribute
+    fc.assert(
+      fc.property(
+        fc.stringOf(fc.constantFrom(' ', '\t', '\n'), { minLength: 1, maxLength: 20 }),
+        fc.webUrl(),
+        (whitespaceAlt, src) => {
+          const img: ImageElement = { src, alt: whitespaceAlt };
+          expect(imageHasNonEmptyAlt(img)).toBe(false);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+
 // Feature: wellflow-website, Property 12: Images below the fold have loading="lazy"
 
+/**
+ * Property-based test for image loading strategy
+ * Property 12: Images below the fold have loading="lazy"
 /**
  * Property-based test for image loading strategy
  * Property 12: Images below the fold have loading="lazy"
@@ -14,10 +166,8 @@
  *   !isHero → hasLazyLoading === true (or no priority flag)
  */
 
-import * as fc from 'fast-check';
-
 // ---------------------------------------------------------------------------
-// Types
+// Types (P12)
 // ---------------------------------------------------------------------------
 
 /**

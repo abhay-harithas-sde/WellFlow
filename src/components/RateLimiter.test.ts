@@ -2,7 +2,7 @@ import * as fc from 'fast-check';
 import { RateLimiter } from './RateLimiter';
 
 // ============================================================
-// Unit tests
+// Unit tests — Requirements: 10.1, 10.2, 10.3, 10.4
 // ============================================================
 
 describe('RateLimiter — unit tests', () => {
@@ -19,30 +19,59 @@ describe('RateLimiter — unit tests', () => {
     expect(rl.requestsThisMinute).toBe(1);
   });
 
-  it('allows up to 2 concurrent acquires without blocking', async () => {
+  it('allows up to 3 concurrent acquires without blocking (Req 10.1)', async () => {
     const rl = new RateLimiter();
     await rl.acquire();
     await rl.acquire();
-    expect(rl.activeCount).toBe(2);
+    await rl.acquire();
+    expect(rl.activeCount).toBe(3);
   });
 
-  it('third acquire() is queued until release() is called', async () => {
+  it('fourth acquire() is queued until release() is called (Req 10.2)', async () => {
     const rl = new RateLimiter();
     await rl.acquire();
     await rl.acquire();
+    await rl.acquire();
 
-    let thirdResolved = false;
-    const third = rl.acquire().then(() => { thirdResolved = true; });
+    let fourthResolved = false;
+    const fourth = rl.acquire().then(() => { fourthResolved = true; });
 
     // Not yet resolved — still at capacity
-    await Promise.resolve(); // flush microtasks
-    expect(thirdResolved).toBe(false);
-    expect(rl.activeCount).toBe(2);
+    await Promise.resolve();
+    expect(fourthResolved).toBe(false);
+    expect(rl.activeCount).toBe(3);
 
     rl.release();
-    await third;
-    expect(thirdResolved).toBe(true);
-    expect(rl.activeCount).toBe(2); // slot taken by third
+    await fourth;
+    expect(fourthResolved).toBe(true);
+    expect(rl.activeCount).toBe(3); // slot taken by fourth
+  });
+
+  it('activeCount never exceeds 3 with concurrent acquires (Req 10.1)', async () => {
+    const rl = new RateLimiter();
+    const promises = [rl.acquire(), rl.acquire(), rl.acquire(), rl.acquire(), rl.acquire()];
+    await Promise.resolve();
+    expect(rl.activeCount).toBeLessThanOrEqual(3);
+    // Release all
+    for (let i = 0; i < 5; i++) rl.release();
+    await Promise.all(promises);
+  });
+
+  it('release() immediately unblocks next waiter (Req 10.3)', async () => {
+    const rl = new RateLimiter();
+    await rl.acquire();
+    await rl.acquire();
+    await rl.acquire();
+
+    let nextResolved = false;
+    const next = rl.acquire().then(() => { nextResolved = true; });
+
+    await Promise.resolve();
+    expect(nextResolved).toBe(false);
+
+    rl.release(); // should immediately unblock next
+    await next;
+    expect(nextResolved).toBe(true);
   });
 
   it('release() decrements activeCount', async () => {
@@ -72,6 +101,7 @@ describe('RateLimiter — unit tests', () => {
     const rl = new RateLimiter();
     await rl.acquire();
     await rl.acquire();
+    await rl.acquire();
 
     const order: number[] = [];
     const p1 = rl.acquire().then(() => order.push(1));
@@ -84,6 +114,78 @@ describe('RateLimiter — unit tests', () => {
 
     expect(order).toEqual([1, 2]);
   });
+
+  // ----------------------------------------------------------------
+  // Timeout tests — Req 10.4
+  // ----------------------------------------------------------------
+
+  describe('acquire() timeout (Req 10.4)', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('rejects with timeout error after 10 seconds by default', async () => {
+      const rl = new RateLimiter();
+      // Fill all 3 slots
+      await rl.acquire();
+      await rl.acquire();
+      await rl.acquire();
+
+      const p = rl.acquire(); // will be queued
+
+      // Advance time past the 10-second default timeout
+      jest.advanceTimersByTime(10_001);
+
+      await expect(p).rejects.toThrow('Rate limiter timeout');
+    });
+
+    it('rejects after custom timeoutMs elapses', async () => {
+      const rl = new RateLimiter();
+      await rl.acquire();
+      await rl.acquire();
+      await rl.acquire();
+
+      const p = rl.acquire(500); // custom 500ms timeout
+
+      jest.advanceTimersByTime(501);
+
+      await expect(p).rejects.toThrow('Rate limiter timeout');
+    });
+
+    it('does NOT reject if slot is granted before timeout', async () => {
+      const rl = new RateLimiter();
+      await rl.acquire();
+      await rl.acquire();
+      await rl.acquire();
+
+      const p = rl.acquire(5_000);
+
+      // Release a slot before timeout fires
+      rl.release();
+      jest.advanceTimersByTime(100);
+
+      await expect(p).resolves.toBeUndefined();
+    });
+
+    it('removes timed-out waiter from queue so it does not consume a slot later', async () => {
+      const rl = new RateLimiter();
+      await rl.acquire();
+      await rl.acquire();
+      await rl.acquire();
+
+      const timedOut = rl.acquire(1_000);
+      jest.advanceTimersByTime(1_001);
+      await expect(timedOut).rejects.toThrow('Rate limiter timeout');
+
+      // Now release one slot — should not be consumed by the timed-out waiter
+      rl.release();
+      expect(rl.activeCount).toBe(2);
+    });
+  });
 });
 
 // ============================================================
@@ -91,15 +193,14 @@ describe('RateLimiter — unit tests', () => {
 // ============================================================
 
 /**
- * Validates: Requirements 3.5
- * Property: activeCount never exceeds MAX_CONCURRENT (2) at any point
+ * Validates: Requirements 10.1, 10.2
+ * Property: activeCount never exceeds MAX_CONCURRENT (3) at any point
  * during a sequence of concurrent acquire/release operations.
  */
-describe('RateLimiter — PBT: concurrent request limit (Req 3.5)', () => {
-  it('activeCount never exceeds 2 across arbitrary acquire/release sequences', async () => {
+describe('RateLimiter — PBT: concurrent request limit (Req 10.1)', () => {
+  it('activeCount never exceeds 3 across arbitrary acquire/release sequences', async () => {
     await fc.assert(
       fc.asyncProperty(
-        // Generate a sequence of 1–20 operations: true = acquire, false = release
         fc.array(fc.boolean(), { minLength: 1, maxLength: 20 }),
         async (ops) => {
           const rl = new RateLimiter();
@@ -110,32 +211,23 @@ describe('RateLimiter — PBT: concurrent request limit (Req 3.5)', () => {
             if (isAcquire) {
               const p = rl.acquire();
               pending.push(p);
-              // Flush microtasks so immediately-resolved acquires are counted
               await Promise.resolve();
-              if (rl.activeCount > maxObserved) {
-                maxObserved = rl.activeCount;
-              }
+              if (rl.activeCount > maxObserved) maxObserved = rl.activeCount;
             } else {
               rl.release();
               await Promise.resolve();
-              if (rl.activeCount > maxObserved) {
-                maxObserved = rl.activeCount;
-              }
+              if (rl.activeCount > maxObserved) maxObserved = rl.activeCount;
             }
           }
 
-          // Drain remaining pending promises (they may still be queued)
-          // Release enough slots to let them all resolve
           while (pending.length > 0) {
             rl.release();
             await Promise.resolve();
-            if (rl.activeCount > maxObserved) {
-              maxObserved = rl.activeCount;
-            }
+            if (rl.activeCount > maxObserved) maxObserved = rl.activeCount;
             pending.pop();
           }
 
-          return maxObserved <= 2;
+          return maxObserved <= 3;
         }
       ),
       { numRuns: 200 }
@@ -152,11 +244,9 @@ describe('RateLimiter — PBT: requests-per-minute limit (Req 3.4)', () => {
   it('requestsThisMinute never exceeds 1000 within a single window', async () => {
     await fc.assert(
       fc.asyncProperty(
-        // Number of sequential acquires to attempt (up to 1100 to probe the boundary)
         fc.integer({ min: 1, max: 1100 }),
         async (n) => {
           const rl = new RateLimiter();
-          // Grant up to 1000 acquires (release after each to keep concurrent slots free)
           const limit = Math.min(n, 1000);
           for (let i = 0; i < limit; i++) {
             await rl.acquire();
@@ -170,17 +260,17 @@ describe('RateLimiter — PBT: requests-per-minute limit (Req 3.4)', () => {
   });
 });
 
-// Feature: wellflow-voice-wellness-assistant, Property 8: Rate limiter invariants
+// Feature: murf-ai-voice-integration, Property 12: Rate limiter never exceeds maximum concurrency
 /**
- * Validates: Requirements 3.4, 3.5
+ * Validates: Requirements 10.1, 10.2
  *
- * Property 8 verifies three invariants:
- *   1. activeCount is always between 0 and 2 (inclusive) at any observable point
+ * Property 12 verifies three invariants:
+ *   1. activeCount is always between 0 and 3 (inclusive) at any observable point
  *   2. requestsThisMinute is always between 0 and 1000 (inclusive) within a single window
  *   3. After release(), activeCount is strictly less than before release() (unless already 0)
  */
-describe('RateLimiter — Property 8: Rate limiter invariants', () => {
-  it('invariant 1: activeCount is always between 0 and 2 inclusive', async () => {
+describe('RateLimiter — Property 12: Rate limiter invariants', () => {
+  it('invariant 1: activeCount is always between 0 and 3 inclusive', async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.array(fc.boolean(), { minLength: 1, maxLength: 30 }),
@@ -196,14 +286,13 @@ describe('RateLimiter — Property 8: Rate limiter invariants', () => {
               rl.release();
               await Promise.resolve();
             }
-            if (rl.activeCount < 0 || rl.activeCount > 2) return false;
+            if (rl.activeCount < 0 || rl.activeCount > 3) return false;
           }
 
-          // Drain remaining
           while (pending.length > 0) {
             rl.release();
             await Promise.resolve();
-            if (rl.activeCount < 0 || rl.activeCount > 2) return false;
+            if (rl.activeCount < 0 || rl.activeCount > 3) return false;
             pending.pop();
           }
 
@@ -236,7 +325,7 @@ describe('RateLimiter — Property 8: Rate limiter invariants', () => {
   it('invariant 3: after release(), activeCount is strictly less than before (unless already 0)', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.integer({ min: 1, max: 2 }),
+        fc.integer({ min: 1, max: 3 }),
         async (acquireCount) => {
           const rl = new RateLimiter();
           for (let i = 0; i < acquireCount; i++) {
@@ -246,10 +335,7 @@ describe('RateLimiter — Property 8: Rate limiter invariants', () => {
           rl.release();
           const after = rl.activeCount;
 
-          if (before === 0) {
-            // already 0, release is a no-op
-            return after === 0;
-          }
+          if (before === 0) return after === 0;
           return after < before;
         }
       ),

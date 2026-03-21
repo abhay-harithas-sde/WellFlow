@@ -32,3 +32,5 @@ export { CommunityManager } from './CommunityManager';
 export type { CommunityManagerCallbacks } from './CommunityManager';
 export { WellFlowAssistant } from './WellFlowAssistant';
 export type { WellFlowAssistantConfig, WellFlowAssistantCallbacks } from './WellFlowAssistant';
+export { TextFallbackDisplay } from './TextFallbackDisplay';
+export type { FallbackDisplayAdapter } from './TextFallbackDisplay';

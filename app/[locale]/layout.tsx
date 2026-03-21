@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { locales, getMessages, type Locale } from '@/lib/i18n';
 import SkipLink from '@/components/layout/SkipLink';
 import ClientProviders from '@/components/layout/ClientProviders';
+import '@/app/globals.css';
 
 export const metadata: Metadata = {
   title: {
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
 
 interface LocaleLayoutProps {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }
 
 export function generateStaticParams() {
@@ -37,8 +38,9 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({
   children,
-  params: { locale },
+  params,
 }: LocaleLayoutProps) {
+  const { locale } = await params;
   if (!(locales as readonly string[]).includes(locale)) {
     notFound();
   }
@@ -47,8 +49,8 @@ export default async function LocaleLayout({
   const t = await getTranslations({ locale: locale as Locale, namespace: 'a11y' });
 
   return (
-    <html lang={locale}>
-      <body>
+    <html lang={locale} className="bg-gray-950">
+      <body className="bg-gray-950 text-white antialiased">
         <SkipLink label={t('skipToMain')} />
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}

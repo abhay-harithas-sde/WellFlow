@@ -16,13 +16,44 @@ export class VoiceSelector {
     fallbackVoiceId: null,
   };
 
+  private availableVoices: MurfVoice[];
+  private sessionLanguage: string = 'en';
+  private initialised: boolean = false;
+
   constructor(
     private readonly profileStore: ProfileStore,
     private readonly wsManager: WebSocketManager,
     private readonly rateLimiter: RateLimiterInterface,
     private readonly callbacks: VoiceSelectorCallbacks,
-    private readonly availableVoices: MurfVoice[] = [],
-  ) {}
+    initialVoices: MurfVoice[] = [],
+    private readonly fetchFn: typeof fetch = fetch,
+  ) {
+    this.availableVoices = initialVoices;
+  }
+
+  /**
+   * Fetches the voice catalogue from /api/murf/voices and caches it in memory.
+   * Idempotent — subsequent calls are no-ops.
+   * Requirements: 5.1, 5.3, 5.4, 6.3
+   */
+  async initialise(language: string): Promise<void> {
+    if (this.initialised) return;
+    this.initialised = true;
+    this.sessionLanguage = language;
+
+    try {
+      const response = await this.fetchFn('/api/murf/voices');
+      if (!response.ok) {
+        throw new Error(`Voice catalogue fetch failed with status ${response.status}`);
+      }
+      const voices: MurfVoice[] = await response.json();
+      this.availableVoices = voices;
+    } catch (err) {
+      this.availableVoices = [];
+      const message = err instanceof Error ? err.message : 'Failed to fetch voice catalogue';
+      this.callbacks.onPreviewError('', `Voice catalogue unavailable: ${message}`);
+    }
+  }
 
   /**
    * Returns voices matching ALL supplied filter fields.
@@ -56,7 +87,7 @@ export class VoiceSelector {
         sessionId,
         text: 'Hello, this is a preview of this voice.',
         voiceId,
-        language: 'en',
+        language: this.sessionLanguage,
         speed: 'normal',
       };
       this.wsManager.send(payload);

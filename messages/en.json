@@ -11,9 +11,15 @@
     "headline": "Your Voice-Powered Wellness Companion",
     "subheadline": "WellFlow guides you through breathing exercises, mindfulness sessions, and daily wellness routines — all hands-free, just by speaking.",
     "cta": "Start Your Free Trial",
+    "hearVoice": "Hear WellFlow's Voice",
     "trustUsers": "50,000+ users",
     "trustRating": "4.8 stars on App Store",
-    "trustAward": "Best Wellness App 2024"
+    "trustAward": "Best Wellness App 2024",
+    "ttsWidget": "WellFlow voice preview",
+    "ttsPlay": "Play",
+    "ttsStop": "Stop",
+    "ttsError": "Could not load voice. Please try again.",
+    "ttsRetry": "Retry"
   },
   "features": {
     "title": "Everything You Need to Thrive",
@@ -82,28 +88,124 @@
       "healthFitness": "Health & Fitness",
       "calendar": "Calendar",
       "wearables": "Wearables",
-      "messaging": "Messaging"
+      "messaging": "Messaging",
+      "voiceAI": "Voice & AI",
+      "wellnessPlatform": "Wellness Platform"
+    },
+    "murf": {
+      "name": "Murf AI",
+      "desc": "Natural text-to-speech voices powering WellFlow's guided sessions."
+    },
+    "wellflow": {
+      "name": "WellFlow Platform",
+      "desc": "The complete wellness engine behind breathing guides, mindfulness sessions, and analytics."
     }
   },
   "testimonials": {
     "title": "Loved by Thousands",
-    "aggregate": "4.8 out of 5 stars from over 12,000 reviews"
+    "aggregate": "4.8 out of 5 stars from over 12,000 reviews",
+    "noReviews": "No testimonials available yet. Check back soon!",
+    "carouselLabel": "Testimonials carousel",
+    "navLabel": "Testimonial navigation",
+    "prevLabel": "Previous testimonial",
+    "nextLabel": "Next testimonial",
+    "dotLabel": "Go to testimonial {n}",
+    "positionAnnouncement": "Testimonial {current} of {total}",
+    "averageRatingLabel": "Average rating: {rating} out of 5 stars from {total} reviews",
+    "ratingDisplay": "{rating} out of 5",
+    "reviewCount": "{total} reviews",
+    "reviewCountSingle": "1 review",
+    "items": [
+      {
+        "id": "1",
+        "quote": "WellFlow has completely transformed my morning routine. The voice-guided breathing exercises help me start every day with clarity and calm.",
+        "author": "Sarah M.",
+        "rating": 5
+      },
+      {
+        "id": "2",
+        "quote": "I love how seamlessly it syncs with my Apple Watch. Tracking my stress levels throughout the day has never been this effortless.",
+        "author": "James T.",
+        "rating": 5
+      },
+      {
+        "id": "3",
+        "quote": "The mindfulness sessions are genuinely helpful. After two weeks I noticed a real difference in how I handle work pressure.",
+        "author": "Priya K.",
+        "rating": 4
+      },
+      {
+        "id": "4",
+        "quote": "Being able to just speak my wellness intent and get an instant guided response feels like having a personal coach in my pocket.",
+        "author": "Carlos R.",
+        "rating": 5
+      },
+      {
+        "id": "5",
+        "quote": "The community feature keeps me accountable. Knowing others are on the same journey makes it so much easier to stay consistent.",
+        "author": "Aisha N.",
+        "rating": 4
+      },
+      {
+        "id": "6",
+        "quote": "The Murf AI voice quality is incredible — it sounds so natural and calming that I forget I'm listening to a synthesized voice. It genuinely enhances every session.",
+        "author": "Lena W.",
+        "rating": 5
+      },
+      {
+        "id": "7",
+        "quote": "WellFlow's platform integrations are a game-changer. It connects with my Google Calendar, Apple Health, and Slack so my wellness routine fits perfectly into my workday.",
+        "author": "Marcus D.",
+        "rating": 5
+      }
+    ]
   },
   "pricing": {
     "title": "Simple, Transparent Pricing",
+    "subtitle": "Choose the plan that fits your wellness journey. Upgrade or downgrade at any time.",
     "monthly": "Monthly",
     "annual": "Annual",
     "annualSavings": "Save 20%",
+    "savingsBadge": "Save {percent}%",
     "guarantee": "30-day money-back guarantee. No questions asked.",
     "tiers": {
       "free": {
         "name": "Free",
-        "cta": "Get Started Free"
+        "cta": "Get Started Free",
+        "features": [
+          "Voice-guided breathing exercises",
+          "Basic mindfulness sessions",
+          "3 routine reminders per day",
+          "Community access"
+        ]
       },
       "premium": {
         "name": "Premium",
         "cta": "Start Free Trial",
-        "badge": "Most Popular"
+        "badge": "Most Popular",
+        "features": [
+          "Everything in Free",
+          "Murf AI Voice",
+          "Unlimited mindfulness sessions",
+          "Health & wearable sync",
+          "Stress tracking & analytics",
+          "Unlimited routine reminders",
+          "Priority support"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "cta": "Go Pro",
+        "features": [
+          "Everything in Premium",
+          "Murf AI Voice",
+          "Full WellFlow Platform",
+          "Advanced AI coaching",
+          "Team & family sharing (up to 5)",
+          "Custom wellness programs",
+          "Dedicated account manager",
+          "Early access to new features"
+        ]
       }
     }
   },
@@ -120,6 +222,13 @@
     "social": {
       "twitter": "Twitter",
       "instagram": "Instagram"
+    },
+    "newsletter": {
+      "label": "Stay in the loop",
+      "placeholder": "Enter your email",
+      "submit": "Subscribe",
+      "success": "Thanks for subscribing! Check your inbox for a confirmation.",
+      "error": "Please enter a valid email address."
     }
   },
   "cookie": {
@@ -130,5 +239,92 @@
   },
   "a11y": {
     "skipToMain": "Skip to main content"
+  },
+  "stats": {
+    "users": "50,000+",
+    "sessions": "2M+",
+    "rating": "4.8",
+    "countries": "120+",
+    "usersLabel": "Active Users",
+    "sessionsLabel": "Sessions Completed",
+    "ratingLabel": "Average Rating",
+    "countriesLabel": "Countries Supported"
+  },
+  "voiceDemo": {
+    "title": "Hear WellFlow's Voice",
+    "subtitle": "Experience the natural, calming voice powered by Murf AI — choose a voice and listen to a sample wellness script.",
+    "selectVoice": "Select a voice",
+    "selectScript": "Choose a script",
+    "play": "Play",
+    "stop": "Stop",
+    "loading": "Loading voices…",
+    "error": "Could not load voices. Please try again.",
+    "retry": "Retry",
+    "scripts": {
+      "breathing": "Take a deep breath in… hold… and slowly release. You are doing great.",
+      "mindfulness": "Close your eyes and bring your attention to the present moment. Notice how you feel right now.",
+      "stress": "Let go of tension with every exhale. Your body knows how to find calm — trust it."
+    }
+  },
+  "demo": {
+    "title": "Try WellFlow Right Now",
+    "subtitle": "No sign-up needed. Experience a live breathing exercise or mindfulness check-in powered by the WellFlow platform.",
+    "tabBreathing": "Breathing Exercise",
+    "tabMindfulness": "Mindfulness Check-in",
+    "breathingStart": "Start Breathing Exercise",
+    "breathingStop": "Stop",
+    "breathingPhase": {
+      "inhale": "Inhale",
+      "hold": "Hold",
+      "exhale": "Exhale"
+    },
+    "mindfulnessPrompt": "How are you feeling right now? Take a moment to check in with yourself.",
+    "moodLabel": "Rate your mood (1 = low, 5 = great)",
+    "complete": "Great job! You've completed your session. Ready to make this a daily habit?",
+    "cta": "Start Your Free Trial",
+    "ttsError": "Audio unavailable — please read the message above."
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "items": [
+      {
+        "question": "How does WellFlow's voice quality compare to other apps?",
+        "answer": "WellFlow uses Murf AI, one of the most advanced text-to-speech platforms available. You get natural, human-like voices in multiple styles and languages — far beyond the robotic voices found in most wellness apps."
+      },
+      {
+        "question": "Which languages does WellFlow support?",
+        "answer": "WellFlow currently supports English and Spanish, with more languages on the roadmap. The Murf AI integration enables us to add new languages quickly as demand grows."
+      },
+      {
+        "question": "What platforms and apps does WellFlow integrate with?",
+        "answer": "WellFlow integrates with Apple Health, Google Fit, Fitbit, Garmin, Google Calendar, Outlook, Slack, WhatsApp, and more. The WellFlow platform engine handles all sync logic so your wellness data stays connected."
+      },
+      {
+        "question": "How does pricing and billing work?",
+        "answer": "We offer a Free tier with core features, a Premium tier with Murf AI voice and advanced sessions, and a Pro tier with the full WellFlow platform. You can pay monthly or annually — annual plans save up to 20%. All paid plans include a 30-day money-back guarantee."
+      },
+      {
+        "question": "Is my data private and secure?",
+        "answer": "Yes. WellFlow encrypts all personal and health data in transit and at rest. We never sell your data to third parties. You can export or delete your data at any time from your account settings."
+      },
+      {
+        "question": "Is there a free trial?",
+        "answer": "Absolutely. You can start with the Free tier immediately — no credit card required. Premium and Pro plans include a 14-day free trial so you can experience the full feature set before committing."
+      },
+      {
+        "question": "Can I cancel my subscription at any time?",
+        "answer": "Yes, you can cancel anytime from your account settings. If you cancel within 30 days of your first paid charge, you'll receive a full refund — no questions asked."
+      },
+      {
+        "question": "Which devices is WellFlow compatible with?",
+        "answer": "WellFlow works on iOS (iPhone and iPad), Android, and any modern web browser. It also integrates with Apple Watch, Wear OS, Fitbit, and Garmin wearables for real-time biometric-aware sessions."
+      }
+    ]
+  },
+  "cta": {
+    "headline": "Start Your Wellness Journey Today",
+    "subheadline": "Join 50,000+ users who have transformed their daily routines with WellFlow's voice-powered guidance.",
+    "primary": "Get Started Free",
+    "secondary": "View Pricing"
   }
 }

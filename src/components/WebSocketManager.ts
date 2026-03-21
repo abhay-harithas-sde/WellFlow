@@ -1,7 +1,15 @@
-// Feature: wellflow-voice-wellness-assistant
+// Feature: murf-ai-voice-integration
 // WebSocketManager: manages WebSocket connections for real-time voice streaming (Requirements 4.1–4.6)
 
 import { WebSocketError, CloseReason } from '../types';
+
+// ------------------------------------------------------------------
+// Logger interface (compatible with MurfLogger / TTSLogger)
+// ------------------------------------------------------------------
+
+export interface WsLogger {
+  logWsError(code: number, reason: string, sessionId: string): void;
+}
 
 // ------------------------------------------------------------------
 // Minimal DOM-type stubs (lib does not include DOM)
@@ -86,13 +94,18 @@ export class WebSocketManager {
   // Factory for creating WebSocket instances (injectable for tests)
   private readonly wsFactory: (url: string) => IWebSocket;
 
+  // Optional logger for observability (Requirement 13.2)
+  private readonly logger: WsLogger | null;
+
   constructor(
-    wsUrl: string = 'wss://api.murf.ai/tts/stream',
+    wsUrl: string = '/api/murf/tts',
     wsFactory?: (url: string) => IWebSocket,
+    logger?: WsLogger,
   ) {
     this.wsUrl = wsUrl;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.wsFactory = wsFactory ?? ((url: string) => new (globalThis as any).WebSocket(url) as IWebSocket);
+    this.logger = logger ?? null;
   }
 
   // ------------------------------------------------------------------
@@ -221,7 +234,7 @@ export class WebSocketManager {
   // Private helpers
   // ------------------------------------------------------------------
 
-  private _handleClose(sessionId: string, _event: CloseEvent): void {
+  private _handleClose(sessionId: string, event: CloseEvent): void {
     const wasConnected = this.connectedSessions.has(sessionId);
     this.connectedSessions.delete(sessionId);
     this.connections.delete(sessionId);
@@ -230,6 +243,11 @@ export class WebSocketManager {
     if (!wasConnected) {
       // Already disconnected intentionally — do nothing
       return;
+    }
+
+    // Requirement 13.2: log unexpected close with error code, reason, and session ID
+    if (this.logger) {
+      this.logger.logWsError(event.code, event.reason || 'Unexpected close', sessionId);
     }
 
     if (this.onClose) {
@@ -244,6 +262,9 @@ export class WebSocketManager {
     if (this.retryCount >= MAX_RETRIES) {
       // Requirement 4.6: notify user after 3 failed retries
       this.reconnecting.delete(sessionId);
+      if (this.logger) {
+        this.logger.logWsError(0, 'Max retries exceeded', sessionId);
+      }
       if (this.onMaxRetriesExceeded) {
         this.onMaxRetriesExceeded(sessionId);
       }
@@ -256,6 +277,9 @@ export class WebSocketManager {
     const timer = setTimeout(() => {
       this.reconnectTimers.delete(sessionId);
       this.retryCount += 1;
+      if (this.logger) {
+        this.logger.logWsError(0, `Reconnect attempt ${this.retryCount}`, sessionId);
+      }
       // Use _openSocket in reconnect mode so errors are handled inline
       this._openSocket(sessionId, /* isReconnect */ true).catch(() => {
         // Error already handled inside _openSocket (isReconnect=true)
@@ -269,6 +293,9 @@ export class WebSocketManager {
   private _onReconnectAttemptFailed(sessionId: string): void {
     if (this.retryCount >= MAX_RETRIES) {
       this.reconnecting.delete(sessionId);
+      if (this.logger) {
+        this.logger.logWsError(0, 'Max retries exceeded', sessionId);
+      }
       if (this.onMaxRetriesExceeded) {
         this.onMaxRetriesExceeded(sessionId);
       }

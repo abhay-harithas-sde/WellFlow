@@ -1,8 +1,13 @@
+import { useTranslations } from 'next-intl';
 import { IntegrationLogo, IntegrationLogoProps } from '@/components/ui/IntegrationLogo';
 
-type Integration = Omit<IntegrationLogoProps, never>;
+type Integration = Omit<IntegrationLogoProps, 'categoryLabel' | 'description'>;
 
 const integrations: Integration[] = [
+  // Voice & AI
+  { id: 'murf-ai', name: 'Murf AI', logoSrc: '🎙️', category: 'voice-ai' },
+  // Wellness Platform
+  { id: 'wellflow', name: 'WellFlow Platform', logoSrc: '🌊', category: 'wellness-platform' },
   // Health & Fitness
   { id: 'apple-health', name: 'Apple Health', logoSrc: '🍎', category: 'health-fitness' },
   { id: 'google-fit', name: 'Google Fit', logoSrc: '🏃', category: 'health-fitness' },
@@ -22,43 +27,65 @@ const integrations: Integration[] = [
   { id: 'telegram', name: 'Telegram', logoSrc: '✈️', category: 'messaging' },
 ];
 
-const categories: {
-  key: Integration['category'];
-  label: string;
-}[] = [
-  { key: 'health-fitness', label: 'Health & Fitness' },
-  { key: 'calendar', label: 'Calendar' },
-  { key: 'wearables', label: 'Wearables' },
-  { key: 'messaging', label: 'Messaging' },
+type CategoryKey = Integration['category'];
+
+const categoryOrder: CategoryKey[] = [
+  'voice-ai',
+  'wellness-platform',
+  'health-fitness',
+  'calendar',
+  'wearables',
+  'messaging',
 ];
 
 export default function IntegrationsSection() {
+  const t = useTranslations('integrations');
+
+  const categoryLabels: Record<CategoryKey, string> = {
+    'voice-ai': t('categories.voiceAI'),
+    'wellness-platform': t('categories.wellnessPlatform'),
+    'health-fitness': t('categories.healthFitness'),
+    calendar: t('categories.calendar'),
+    wearables: t('categories.wearables'),
+    messaging: t('categories.messaging'),
+  };
+
+  const descriptionMap: Partial<Record<string, string>> = {
+    'murf-ai': t('murf.desc'),
+    wellflow: t('wellflow.desc'),
+  };
+
   return (
-    <section id="integrations" className="py-20 bg-gray-50">
+    <section id="integrations" className="py-20 bg-gray-950">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Works With Your Favourite Tools
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            {t('title')}
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Connect WellFlow to the apps and devices you already use — so your wellness data,
-            calendar, and conversations all work together seamlessly.
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            {t('intro')}
           </p>
         </div>
 
         {/* Categories */}
         <div className="space-y-10">
-          {categories.map(({ key, label }) => {
+          {categoryOrder.map((key) => {
             const items = integrations.filter((i) => i.category === key);
+            if (items.length === 0) return null;
             return (
               <div key={key}>
-                <h3 className="text-sm font-semibold uppercase tracking-widest text-indigo-600 mb-4">
-                  {label}
+                <h3 className="text-sm font-semibold uppercase tracking-widest text-green-400 mb-4">
+                  {categoryLabels[key]}
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                   {items.map((integration) => (
-                    <IntegrationLogo key={integration.id} {...integration} />
+                    <IntegrationLogo
+                      key={integration.id}
+                      {...integration}
+                      categoryLabel={categoryLabels[key]}
+                      description={descriptionMap[integration.id]}
+                    />
                   ))}
                 </div>
               </div>

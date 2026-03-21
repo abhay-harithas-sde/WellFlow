@@ -47,10 +47,10 @@ export function LanguageSwitcher() {
             lang={locale}
             className={[
               'px-2 py-1 text-xs font-semibold rounded transition-colors duration-150',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2',
               isActive
-                ? 'bg-brand-600 text-white'
-                : 'text-gray-600 hover:text-brand-600 hover:bg-gray-100',
+                ? 'bg-green-600 text-white'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700',
             ].join(' ')}
           >
             {LOCALE_LABELS[locale]}

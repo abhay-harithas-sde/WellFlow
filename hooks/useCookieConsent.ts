@@ -11,11 +11,34 @@ export interface ConsentState {
   accepted: boolean;
 }
 
-const STORAGE_KEY = 'wf_cookie_consent';
+export const COOKIE_NAME = 'wellflow_cookie_consent';
+const COOKIE_EXPIRY_DAYS = 365;
 
-function readFromStorage(): ConsentRecord | null {
+function setCookie(name: string, value: string, days: number): void {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const expires = new Date();
+    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+  } catch {
+    // Cookie write unavailable — in-memory state is used
+  }
+}
+
+function getCookie(name: string): string | null {
+  try {
+    const match = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith(`${name}=`));
+    if (!match) return null;
+    return decodeURIComponent(match.split('=').slice(1).join('='));
+  } catch {
+    return null;
+  }
+}
+
+function readConsentCookie(): ConsentRecord | null {
+  try {
+    const raw = getCookie(COOKIE_NAME);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ConsentRecord;
     if (parsed.version === 1 && typeof parsed.accepted === 'boolean') {
@@ -27,12 +50,8 @@ function readFromStorage(): ConsentRecord | null {
   }
 }
 
-function writeToStorage(record: ConsentRecord): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
-  } catch {
-    // Storage unavailable (private browsing, quota exceeded) — in-memory state is used
-  }
+function writeConsentCookie(record: ConsentRecord): void {
+  setCookie(COOKIE_NAME, JSON.stringify(record), COOKIE_EXPIRY_DAYS);
 }
 
 export function useCookieConsent(): ConsentState & {
@@ -45,7 +64,7 @@ export function useCookieConsent(): ConsentState & {
   });
 
   useEffect(() => {
-    const record = readFromStorage();
+    const record = readConsentCookie();
     if (record) {
       setState({ decided: true, accepted: record.accepted });
     }
@@ -57,7 +76,7 @@ export function useCookieConsent(): ConsentState & {
       accepted: true,
       timestamp: Date.now(),
     };
-    writeToStorage(record);
+    writeConsentCookie(record);
     setState({ decided: true, accepted: true });
   };
 
@@ -67,7 +86,7 @@ export function useCookieConsent(): ConsentState & {
       accepted: false,
       timestamp: Date.now(),
     };
-    writeToStorage(record);
+    writeConsentCookie(record);
     setState({ decided: true, accepted: false });
   };
 

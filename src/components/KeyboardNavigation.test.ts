@@ -109,9 +109,9 @@ describe('Requirement 10.3 — Keyboard activation (Enter/Space)', () => {
       expect(sources.navigation).toMatch(/<a\b[^>]*href=/);
     });
 
-    it('CTA in navigation uses Button component (native <button> underneath)', () => {
-      // The desktop CTA uses the Button component
-      expect(sources.navigation).toMatch(/<Button\b/);
+    it('CTA in navigation uses a native <a> element linking to /signup', () => {
+      // The desktop CTA uses an anchor tag styled as a button, linking to /signup
+      expect(sources.navigation).toMatch(/href="\/signup"/);
     });
 
     it('mobile close button uses a native <button> element', () => {
