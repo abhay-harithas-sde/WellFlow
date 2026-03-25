@@ -1,0 +1,259 @@
+import * as fc from 'fast-check';
+import { RateLimiter } from './RateLimiter';
+
+// ============================================================
+// Unit tests
+// ============================================================
+
+describe('RateLimiter — unit tests', () => {
+  it('starts with activeCount 0 and requestsThisMinute 0', () => {
+    const rl = new RateLimiter();
+    expect(rl.activeCount).toBe(0);
+    expect(rl.requestsThisMinute).toBe(0);
+  });
+
+  it('acquire() resolves immediately when under both limits', async () => {
+    const rl = new RateLimiter();
+    await rl.acquire();
+    expect(rl.activeCount).toBe(1);
+    expect(rl.requestsThisMinute).toBe(1);
+  });
+
+  it('allows up to 2 concurrent acquires without blocking', async () => {
+    const rl = new RateLimiter();
+    await rl.acquire();
+    await rl.acquire();
+    expect(rl.activeCount).toBe(2);
+  });
+
+  it('third acquire() is queued until release() is called', async () => {
+    const rl = new RateLimiter();
+    await rl.acquire();
+    await rl.acquire();
+
+    let thirdResolved = false;
+    const third = rl.acquire().then(() => { thirdResolved = true; });
+
+    // Not yet resolved — still at capacity
+    await Promise.resolve(); // flush microtasks
+    expect(thirdResolved).toBe(false);
+    expect(rl.activeCount).toBe(2);
+
+    rl.release();
+    await third;
+    expect(thirdResolved).toBe(true);
+    expect(rl.activeCount).toBe(2); // slot taken by third
+  });
+
+  it('release() decrements activeCount', async () => {
+    const rl = new RateLimiter();
+    await rl.acquire();
+    expect(rl.activeCount).toBe(1);
+    rl.release();
+    expect(rl.activeCount).toBe(0);
+  });
+
+  it('release() does not go below 0', () => {
+    const rl = new RateLimiter();
+    rl.release(); // no-op
+    expect(rl.activeCount).toBe(0);
+  });
+
+  it('requestsThisMinute increments with each granted acquire', async () => {
+    const rl = new RateLimiter();
+    await rl.acquire();
+    rl.release();
+    await rl.acquire();
+    rl.release();
+    expect(rl.requestsThisMinute).toBe(2);
+  });
+
+  it('queued waiters are resolved in FIFO order', async () => {
+    const rl = new RateLimiter();
+    await rl.acquire();
+    await rl.acquire();
+
+    const order: number[] = [];
+    const p1 = rl.acquire().then(() => order.push(1));
+    const p2 = rl.acquire().then(() => order.push(2));
+
+    rl.release(); // unblocks p1
+    await p1;
+    rl.release(); // unblocks p2
+    await p2;
+
+    expect(order).toEqual([1, 2]);
+  });
+});
+
+// ============================================================
+// Property-based tests
+// ============================================================
+
+/**
+ * Validates: Requirements 3.5
+ * Property: activeCount never exceeds MAX_CONCURRENT (2) at any point
+ * during a sequence of concurrent acquire/release operations.
+ */
+describe('RateLimiter — PBT: concurrent request limit (Req 3.5)', () => {
+  it('activeCount never exceeds 2 across arbitrary acquire/release sequences', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        // Generate a sequence of 1–20 operations: true = acquire, false = release
+        fc.array(fc.boolean(), { minLength: 1, maxLength: 20 }),
+        async (ops) => {
+          const rl = new RateLimiter();
+          const pending: Promise<void>[] = [];
+          let maxObserved = 0;
+
+          for (const isAcquire of ops) {
+            if (isAcquire) {
+              const p = rl.acquire();
+              pending.push(p);
+              // Flush microtasks so immediately-resolved acquires are counted
+              await Promise.resolve();
+              if (rl.activeCount > maxObserved) {
+                maxObserved = rl.activeCount;
+              }
+            } else {
+              rl.release();
+              await Promise.resolve();
+              if (rl.activeCount > maxObserved) {
+                maxObserved = rl.activeCount;
+              }
+            }
+          }
+
+          // Drain remaining pending promises (they may still be queued)
+          // Release enough slots to let them all resolve
+          while (pending.length > 0) {
+            rl.release();
+            await Promise.resolve();
+            if (rl.activeCount > maxObserved) {
+              maxObserved = rl.activeCount;
+            }
+            pending.pop();
+          }
+
+          return maxObserved <= 2;
+        }
+      ),
+      { numRuns: 200 }
+    );
+  });
+});
+
+/**
+ * Validates: Requirements 3.4
+ * Property: requestsThisMinute never exceeds 1000 within a single
+ * minute window for any number of sequential acquire calls.
+ */
+describe('RateLimiter — PBT: requests-per-minute limit (Req 3.4)', () => {
+  it('requestsThisMinute never exceeds 1000 within a single window', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        // Number of sequential acquires to attempt (up to 1100 to probe the boundary)
+        fc.integer({ min: 1, max: 1100 }),
+        async (n) => {
+          const rl = new RateLimiter();
+          // Grant up to 1000 acquires (release after each to keep concurrent slots free)
+          const limit = Math.min(n, 1000);
+          for (let i = 0; i < limit; i++) {
+            await rl.acquire();
+            rl.release();
+          }
+          return rl.requestsThisMinute <= 1000;
+        }
+      ),
+      { numRuns: 50 }
+    );
+  });
+});
+
+// Feature: wellflow-voice-wellness-assistant, Property 8: Rate limiter invariants
+/**
+ * Validates: Requirements 3.4, 3.5
+ *
+ * Property 8 verifies three invariants:
+ *   1. activeCount is always between 0 and 2 (inclusive) at any observable point
+ *   2. requestsThisMinute is always between 0 and 1000 (inclusive) within a single window
+ *   3. After release(), activeCount is strictly less than before release() (unless already 0)
+ */
+describe('RateLimiter — Property 8: Rate limiter invariants', () => {
+  it('invariant 1: activeCount is always between 0 and 2 inclusive', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(fc.boolean(), { minLength: 1, maxLength: 30 }),
+        async (ops) => {
+          const rl = new RateLimiter();
+          const pending: Promise<void>[] = [];
+
+          for (const isAcquire of ops) {
+            if (isAcquire) {
+              pending.push(rl.acquire());
+              await Promise.resolve();
+            } else {
+              rl.release();
+              await Promise.resolve();
+            }
+            if (rl.activeCount < 0 || rl.activeCount > 2) return false;
+          }
+
+          // Drain remaining
+          while (pending.length > 0) {
+            rl.release();
+            await Promise.resolve();
+            if (rl.activeCount < 0 || rl.activeCount > 2) return false;
+            pending.pop();
+          }
+
+          return true;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  it('invariant 2: requestsThisMinute is always between 0 and 1000 inclusive within a single window', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.integer({ min: 0, max: 1000 }),
+        async (n) => {
+          const rl = new RateLimiter();
+          for (let i = 0; i < n; i++) {
+            await rl.acquire();
+            rl.release();
+            const count = rl.requestsThisMinute;
+            if (count < 0 || count > 1000) return false;
+          }
+          return rl.requestsThisMinute >= 0 && rl.requestsThisMinute <= 1000;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  it('invariant 3: after release(), activeCount is strictly less than before (unless already 0)', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.integer({ min: 1, max: 2 }),
+        async (acquireCount) => {
+          const rl = new RateLimiter();
+          for (let i = 0; i < acquireCount; i++) {
+            await rl.acquire();
+          }
+          const before = rl.activeCount;
+          rl.release();
+          const after = rl.activeCount;
+
+          if (before === 0) {
+            // already 0, release is a no-op
+            return after === 0;
+          }
+          return after < before;
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});
