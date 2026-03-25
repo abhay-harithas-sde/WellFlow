@@ -10,11 +10,11 @@ import CookieConsentBanner from '@/components/ui/CookieConsentBanner';
  * Renders the CookieConsentBanner and conditionally activates AnalyticsLoader.
  */
 export default function ClientProviders() {
-  const { accepted } = useCookieConsent();
+  const { decided, accepted, accept, decline } = useCookieConsent();
 
   return (
     <>
-      <CookieConsentBanner />
+      <CookieConsentBanner decided={decided} accept={accept} decline={decline} />
       <AnalyticsLoader accepted={accepted} />
     </>
   );

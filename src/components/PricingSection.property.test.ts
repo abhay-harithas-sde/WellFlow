@@ -1,206 +1,129 @@
-// Feature: wellflow-website, Property 1: Annual price is always less than or equal to monthly equivalent
+// Feature: website-completion-murf-wellflow, Property 5: Annual savings percentage
 
 /**
  * Property-based test for components/sections/PricingSection.tsx
- * Property 1: Annual price is always less than or equal to monthly equivalent
- * Validates: Requirements 7.4
+ * Property 5: Annual savings percentage
+ * Validates: Requirements 10.5
  *
  * Pure logic tests (node environment, no DOM).
- * For any PricingTier, the annualPrice must be strictly less than monthlyPrice × 12
- * (except when monthlyPrice is 0, where annualPrice must also be 0).
+ * For any pricing tier where annualPrice < monthlyPrice * 12 and monthlyPrice > 0,
+ * the displayed savings percentage equals Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100).
  */
 
 import * as fc from 'fast-check';
 
 // ---------------------------------------------------------------------------
-// PricingTier interface (mirrors design.md and PricingSection.tsx)
+// Pure logic extracted from components/sections/PricingSection.tsx
 // ---------------------------------------------------------------------------
 
-interface PricingTier {
-  id: string;
-  name: string;
-  monthlyPrice: number;
-  annualPrice: number;
-  features: string[];
-  recommended: boolean;
-  ctaLabel: string;
-  ctaHref: string;
-}
-
-// ---------------------------------------------------------------------------
-// DEFAULT_TIERS from PricingSection.tsx (source of truth for Req 7.4)
-// ---------------------------------------------------------------------------
-
-const DEFAULT_TIERS: PricingTier[] = [
-  {
-    id: 'free',
-    name: 'Free',
-    monthlyPrice: 0,
-    annualPrice: 0,
-    features: [
-      'Voice-guided breathing exercises',
-      'Basic mindfulness sessions',
-      '3 routine reminders per day',
-      'Community access',
-    ],
-    recommended: false,
-    ctaLabel: 'Get Started Free',
-    ctaHref: '/signup?plan=free',
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    monthlyPrice: 9.99,
-    annualPrice: 79.99, // < 9.99 × 12 = 119.88
-    features: [
-      'Everything in Free',
-      'Unlimited mindfulness sessions',
-      'Health & wearable sync',
-      'Stress tracking & analytics',
-      'Unlimited routine reminders',
-      'Priority support',
-    ],
-    recommended: true,
-    ctaLabel: 'Start Free Trial',
-    ctaHref: '/signup?plan=premium',
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    monthlyPrice: 19.99,
-    annualPrice: 159.99, // < 19.99 × 12 = 239.88
-    features: [
-      'Everything in Premium',
-      'Advanced AI coaching',
-      'Team & family sharing (up to 5)',
-      'Custom wellness programs',
-      'Dedicated account manager',
-      'Early access to new features',
-    ],
-    recommended: false,
-    ctaLabel: 'Go Pro',
-    ctaHref: '/signup?plan=pro',
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Pure logic helper — the invariant under test
-// ---------------------------------------------------------------------------
-
-/**
- * Returns true when the tier satisfies the annual-price invariant:
- *   - If monthlyPrice === 0, annualPrice must also be 0.
- *   - Otherwise, annualPrice must be strictly less than monthlyPrice × 12.
- */
-function satisfiesAnnualPriceInvariant(tier: PricingTier): boolean {
-  if (tier.monthlyPrice === 0) {
-    return tier.annualPrice === 0;
-  }
-  return tier.annualPrice < tier.monthlyPrice * 12;
+/** Compute annual savings percentage vs monthly billing (mirrors PricingSection.tsx) */
+function computeSavingsPercent(monthlyPrice: number, annualPrice: number): number {
+  if (monthlyPrice <= 0) return 0;
+  return Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100);
 }
 
 // ---------------------------------------------------------------------------
 // Arbitraries
 // ---------------------------------------------------------------------------
 
-const nonEmptyStringArb = fc.string({ minLength: 1, maxLength: 100 }).filter(
-  (s) => s.trim().length > 0
-);
-
-/** Generates a positive monthly price (> 0, up to 9999.99). */
-const positivePriceArb = fc.double({ min: 0.01, max: 9999.99, noNaN: true });
+/**
+ * Generates a valid monthlyPrice > 0.
+ * Uses Math.fround to ensure 32-bit float boundaries required by fc.float.
+ */
+const positivePriceArb = fc.float({
+  min: Math.fround(0.01),
+  max: Math.fround(10000),
+  noNaN: true,
+  noDefaultInfinity: true,
+});
 
 /**
- * Generates a PricingTier where annualPrice < monthlyPrice × 12.
- * The annual price is constrained to [0, monthlyPrice × 12).
+ * Generates a pair (monthlyPrice, annualPrice) satisfying:
+ *   monthlyPrice > 0
+ *   annualPrice < monthlyPrice * 12
+ *   annualPrice >= 0
  */
-const validPaidTierArb: fc.Arbitrary<PricingTier> = positivePriceArb.chain(
-  (monthlyPrice) => {
-    const maxAnnual = monthlyPrice * 12;
-    return fc.record({
-      id: nonEmptyStringArb,
-      name: nonEmptyStringArb,
-      monthlyPrice: fc.constant(monthlyPrice),
-      // annualPrice in [0, maxAnnual - epsilon) — strictly less than monthly equivalent
-      annualPrice: fc.double({ min: 0, max: maxAnnual - 0.01, noNaN: true }),
-      features: fc.array(nonEmptyStringArb, { minLength: 0, maxLength: 10 }),
-      recommended: fc.boolean(),
-      ctaLabel: nonEmptyStringArb,
-      ctaHref: nonEmptyStringArb,
-    });
-  }
-);
-
-/**
- * Generates a PricingTier where annualPrice >= monthlyPrice × 12 (invariant violated).
- */
-const invalidPaidTierArb: fc.Arbitrary<PricingTier> = positivePriceArb.chain(
-  (monthlyPrice) => {
-    const minAnnual = monthlyPrice * 12;
-    return fc.record({
-      id: nonEmptyStringArb,
-      name: nonEmptyStringArb,
-      monthlyPrice: fc.constant(monthlyPrice),
-      // annualPrice >= monthlyPrice × 12 — invariant should fail
-      annualPrice: fc.double({ min: minAnnual, max: minAnnual * 2 + 1, noNaN: true }),
-      features: fc.array(nonEmptyStringArb, { minLength: 0, maxLength: 10 }),
-      recommended: fc.boolean(),
-      ctaLabel: nonEmptyStringArb,
-      ctaHref: nonEmptyStringArb,
-    });
-  }
-);
+const savingsTierArb = positivePriceArb.chain((monthlyPrice) => {
+  // Ensure maxAnnual is a valid 32-bit float and strictly less than monthlyPrice * 12
+  const rawMax = monthlyPrice * 12 * 0.99; // at most 99% of annual cost = guaranteed savings
+  const maxAnnual = Math.fround(rawMax);
+  return fc
+    .float({ min: 0, max: Math.max(0, maxAnnual), noNaN: true, noDefaultInfinity: true })
+    .map((annualPrice) => ({ monthlyPrice, annualPrice }));
+});
 
 // ---------------------------------------------------------------------------
-// Property 1 tests
+// Property 5 tests
 // ---------------------------------------------------------------------------
 
-describe('PricingSection — Property 1: Annual price is always less than or equal to monthly equivalent', () => {
+describe('PricingSection — Property 5: Annual savings percentage', () => {
   /**
-   * P1a: For any PricingTier with annualPrice < monthlyPrice × 12, the invariant holds.
-   * Validates: Requirements 7.4
+   * P5a: For any tier where annualPrice < monthlyPrice * 12 and monthlyPrice > 0,
+   * computeSavingsPercent returns Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100).
+   * Validates: Requirements 10.5
    */
-  it('P1a: any tier with annualPrice < monthlyPrice × 12 satisfies the annual price invariant', () => {
+  it('P5a: savings percent equals Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100)', () => {
+    // Feature: website-completion-murf-wellflow, Property 5: Annual savings percentage
     fc.assert(
-      fc.property(validPaidTierArb, (tier) => {
-        expect(satisfiesAnnualPriceInvariant(tier)).toBe(true);
+      fc.property(savingsTierArb, ({ monthlyPrice, annualPrice }) => {
+        const expected = Math.round((1 - annualPrice / (monthlyPrice * 12)) * 100);
+        const actual = computeSavingsPercent(monthlyPrice, annualPrice);
+        expect(actual).toBe(expected);
       }),
       { numRuns: 100 }
     );
   });
 
   /**
-   * P1b: For any PricingTier with annualPrice >= monthlyPrice × 12, the invariant fails.
-   * Validates: Requirements 7.4
+   * P5b: When monthlyPrice <= 0, computeSavingsPercent returns 0 (guard condition).
+   * Validates: Requirements 10.5
    */
-  it('P1b: any tier with annualPrice >= monthlyPrice × 12 violates the annual price invariant', () => {
+  it('P5b: returns 0 when monthlyPrice is zero or negative', () => {
+    // Feature: website-completion-murf-wellflow, Property 5: Annual savings percentage
     fc.assert(
-      fc.property(invalidPaidTierArb, (tier) => {
-        expect(satisfiesAnnualPriceInvariant(tier)).toBe(false);
+      fc.property(
+        fc.float({ min: Math.fround(-10000), max: 0, noNaN: true, noDefaultInfinity: true }),
+        fc.float({ min: 0, max: Math.fround(10000), noNaN: true, noDefaultInfinity: true }),
+        (monthlyPrice, annualPrice) => {
+          const actual = computeSavingsPercent(monthlyPrice, annualPrice);
+          expect(actual).toBe(0);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  /**
+   * P5c: Savings percentage is always a non-negative integer when annualPrice < monthlyPrice * 12.
+   * Validates: Requirements 10.5
+   */
+  it('P5c: savings percent is a non-negative integer for valid discount tiers', () => {
+    // Feature: website-completion-murf-wellflow, Property 5: Annual savings percentage
+    fc.assert(
+      fc.property(savingsTierArb, ({ monthlyPrice, annualPrice }) => {
+        const actual = computeSavingsPercent(monthlyPrice, annualPrice);
+        expect(actual).toBeGreaterThanOrEqual(0);
+        expect(Number.isInteger(actual)).toBe(true);
       }),
       { numRuns: 100 }
     );
   });
 
   /**
-   * P1c: All DEFAULT_TIERS satisfy the annual price invariant.
-   * Validates: Requirements 7.4
+   * P5d: Savings percentage is at most 100 when annualPrice >= 0.
+   * Validates: Requirements 10.5
    */
-  it('P1c: all DEFAULT_TIERS satisfy the annual price invariant', () => {
-    for (const tier of DEFAULT_TIERS) {
-      expect(satisfiesAnnualPriceInvariant(tier)).toBe(true);
-    }
-  });
-
-  /**
-   * P1d: Free tier (monthlyPrice = 0) is handled correctly — annualPrice must be 0.
-   * Validates: Requirements 7.4
-   */
-  it('P1d: free tier with monthlyPrice = 0 and annualPrice = 0 satisfies the invariant', () => {
-    const freeTier = DEFAULT_TIERS.find((t) => t.id === 'free');
-    expect(freeTier).toBeDefined();
-    expect(freeTier!.monthlyPrice).toBe(0);
-    expect(freeTier!.annualPrice).toBe(0);
-    expect(satisfiesAnnualPriceInvariant(freeTier!)).toBe(true);
+  it('P5d: savings percent is at most 100 for any valid discount tier', () => {
+    // Feature: website-completion-murf-wellflow, Property 5: Annual savings percentage
+    fc.assert(
+      fc.property(
+        savingsTierArb,
+        ({ monthlyPrice, annualPrice }) => {
+          const actual = computeSavingsPercent(monthlyPrice, annualPrice);
+          expect(actual).toBeLessThanOrEqual(100);
+        }
+      ),
+      { numRuns: 100 }
+    );
   });
 });

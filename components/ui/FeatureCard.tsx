@@ -5,6 +5,7 @@ export interface FeatureCardProps {
   icon: string;        // SVG component name, emoji, or text icon
   title: string;
   description: string;
+  badge?: string;
   className?: string;
 }
 
@@ -29,13 +30,15 @@ const hoverProps =
       }
     : {};
 
-export function FeatureCard({ id, icon, title, description, className = '' }: FeatureCardProps) {
+export function FeatureCard({ id, icon, title, description, badge, className = '' }: FeatureCardProps) {
   return (
     <MotionDiv
       data-testid={`feature-card-${id}`}
+      tabIndex={0}
       className={[
-        'group flex flex-col items-start gap-4 rounded-2xl border border-gray-100 bg-white p-6',
-        'shadow-sm transition-shadow duration-200 hover:shadow-md hover:border-brand-200',
+        'group flex flex-col items-start gap-4 rounded-2xl border border-gray-800 bg-gray-900 p-6',
+        'shadow-sm transition-all duration-200 hover:shadow-lg hover:border-green-800/50 hover:bg-gray-800/80',
+        'outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950',
         className,
       ]
         .filter(Boolean)
@@ -45,25 +48,26 @@ export function FeatureCard({ id, icon, title, description, className = '' }: Fe
       {/* Icon */}
       <div
         data-testid={`feature-card-icon-${id}`}
-        className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-2xl"
+        className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10 text-2xl"
         aria-hidden="true"
       >
         {icon}
       </div>
 
-      {/* Title */}
-      <h3
-        data-testid={`feature-card-title-${id}`}
-        className="text-lg font-semibold text-gray-900"
-      >
-        {title}
-      </h3>
+      {/* Title + Badge */}
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 data-testid={`feature-card-title-${id}`} className="text-lg font-semibold text-white">
+          {title}
+        </h3>
+        {badge && (
+          <span data-testid={`feature-card-badge-${id}`} className="inline-flex items-center rounded-full bg-green-500/10 border border-green-500/20 px-2.5 py-0.5 text-xs font-medium text-green-400">
+            {badge}
+          </span>
+        )}
+      </div>
 
       {/* Description */}
-      <p
-        data-testid={`feature-card-description-${id}`}
-        className="text-sm leading-relaxed text-gray-600"
-      >
+      <p data-testid={`feature-card-description-${id}`} className="text-sm leading-relaxed text-gray-400">
         {description}
       </p>
     </MotionDiv>

@@ -180,6 +180,62 @@ describe('ConversationEngine', () => {
     });
   });
 
+  // ----------------------------------------------------------------
+  // Task 10.1: Locale switching — TTS language propagation (Req 9.4)
+  // ----------------------------------------------------------------
+
+  describe('setLanguage — locale switching for TTS (Req 9.4)', () => {
+    it('after setLanguage("es"), processInput returns language "es" (maps to es-ES in TTSEngine)', async () => {
+      engine.setLanguage('session-locale-es', 'es');
+      const response = await engine.processInput('I want to breathe', 'session-locale-es');
+      // ConversationEngine returns the raw locale; TTSEngine maps 'es' → 'es-ES'
+      expect(response.language).toBe('es');
+    });
+
+    it('after setLanguage("en"), processInput returns language "en" (maps to en-US in TTSEngine)', async () => {
+      engine.setLanguage('session-locale-en', 'en');
+      const response = await engine.processInput('I want to breathe', 'session-locale-en');
+      // ConversationEngine returns the raw locale; TTSEngine maps 'en' → 'en-US'
+      expect(response.language).toBe('en');
+    });
+
+    it('all responses after setLanguage("es") carry the updated locale', async () => {
+      const sessionId = 'session-locale-es-multi';
+      engine.setLanguage(sessionId, 'es');
+      const r1 = await engine.processInput('I want to breathe', sessionId);
+      const r2 = await engine.processInput('I feel stressed', sessionId);
+      const r3 = await engine.processInput('Start a mindfulness session', sessionId);
+      expect(r1.language).toBe('es');
+      expect(r2.language).toBe('es');
+      expect(r3.language).toBe('es');
+    });
+
+    it('all responses after setLanguage("en") carry the updated locale', async () => {
+      const sessionId = 'session-locale-en-multi';
+      // Start with es, then switch to en
+      engine.setLanguage(sessionId, 'es');
+      await engine.processInput('I want to breathe', sessionId);
+      engine.setLanguage(sessionId, 'en');
+      const r1 = await engine.processInput('I feel stressed', sessionId);
+      const r2 = await engine.processInput('Start a mindfulness session', sessionId);
+      expect(r1.language).toBe('en');
+      expect(r2.language).toBe('en');
+    });
+
+    it('no response after locale switch carries the old locale', async () => {
+      const sessionId = 'session-locale-switch-no-old';
+      engine.setLanguage(sessionId, 'en');
+      await engine.processInput('hello', sessionId);
+      // Switch to es
+      engine.setLanguage(sessionId, 'es');
+      const r1 = await engine.processInput('I want to breathe', sessionId);
+      const r2 = await engine.processInput('I feel stressed', sessionId);
+      // None of the post-switch responses should carry the old locale 'en'
+      expect(r1.language).not.toBe('en');
+      expect(r2.language).not.toBe('en');
+    });
+  });
+
   describe('addStressRating', () => {
     it('appends a stress rating to the context', () => {
       engine.addStressRating('session-stress', 3);

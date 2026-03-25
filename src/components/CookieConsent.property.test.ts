@@ -27,7 +27,7 @@ type ConsentRecord = {
 // Pure persistence logic extracted from useCookieConsent.ts
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = 'wf_cookie_consent';
+const STORAGE_KEY = 'wellflow_cookie_consent';
 
 /** Simulates an in-memory localStorage for pure testing. */
 function createMemoryStorage(): Map<string, string> {
@@ -171,7 +171,7 @@ type ConsentRecordV1 = {
   timestamp: number;
 };
 
-const CONSENT_KEY = 'wf_cookie_consent';
+const CONSENT_KEY = 'wellflow_cookie_consent';
 
 function readConsentFromStorage(store: Map<string, string>): ConsentRecordV1 | null {
   try {

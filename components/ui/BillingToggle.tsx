@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 
 type BillingCycle = 'monthly' | 'annual';
@@ -13,7 +15,7 @@ export function BillingToggle({ value, onChange }: BillingToggleProps) {
   return (
     <div className="flex items-center gap-3" role="group" aria-label="Billing cycle">
       <span
-        className={`text-sm font-medium ${!isAnnual ? 'text-gray-900' : 'text-gray-500'}`}
+        className={`text-sm font-medium ${!isAnnual ? 'text-white' : 'text-gray-500'}`}
         id="billing-monthly-label"
       >
         Monthly
@@ -27,8 +29,8 @@ export function BillingToggle({ value, onChange }: BillingToggleProps) {
         onClick={() => onChange(isAnnual ? 'monthly' : 'annual')}
         className={
           'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ' +
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ' +
-          (isAnnual ? 'bg-brand-600' : 'bg-gray-300')
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-950 ' +
+          (isAnnual ? 'bg-green-600' : 'bg-gray-600')
         }
       >
         <span className="sr-only">Toggle annual billing</span>
@@ -41,11 +43,11 @@ export function BillingToggle({ value, onChange }: BillingToggleProps) {
       </button>
 
       <span
-        className={`text-sm font-medium ${isAnnual ? 'text-gray-900' : 'text-gray-500'}`}
+        className={`text-sm font-medium ${isAnnual ? 'text-white' : 'text-gray-500'}`}
         id="billing-annual-label"
       >
         Annual
-        <span className="ml-1.5 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+        <span className="ml-1.5 rounded-full bg-green-500/20 border border-green-500/30 px-2 py-0.5 text-xs font-semibold text-green-400">
           Save 20%
         </span>
       </span>

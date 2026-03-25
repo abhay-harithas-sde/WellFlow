@@ -2,7 +2,7 @@
 // Unit tests for TTSEngine — speak / setSpeed behavior
 // Requirements: 3.1, 3.2, 3.3, 3.6, 10.4, 11.3
 
-import { TTSEngine, TTSEngineCallbacks } from './TTSEngine';
+import { TTSEngine, TTSEngineCallbacks, AuthError } from './TTSEngine';
 import { RateLimiterInterface } from './RateLimiter';
 import { WebSocketManager, TTSRequest } from './WebSocketManager';
 import { TTSOptions } from '../types';
@@ -28,14 +28,16 @@ function makeMockWsManager(connected = true): jest.Mocked<Pick<WebSocketManager,
   };
 }
 
-function makeCallbacks(): { callbacks: TTSEngineCallbacks; fallbackTexts: string[]; unsupportedLangs: string[] } {
+function makeCallbacks(): { callbacks: TTSEngineCallbacks; fallbackTexts: string[]; unsupportedLangs: string[]; authErrors: number[] } {
   const fallbackTexts: string[] = [];
   const unsupportedLangs: string[] = [];
+  const authErrors: number[] = [];
   const callbacks: TTSEngineCallbacks = {
     onTextFallback: (t) => fallbackTexts.push(t),
     onUnsupportedLanguage: (l) => unsupportedLangs.push(l),
+    onAuthError: (code) => authErrors.push(code),
   };
-  return { callbacks, fallbackTexts, unsupportedLangs };
+  return { callbacks, fallbackTexts, unsupportedLangs, authErrors };
 }
 
 const BASE_OPTIONS: TTSOptions = {
@@ -73,7 +75,7 @@ describe('TTSEngine.speak — happy path', () => {
     const sent = ws.send.mock.calls[0][0] as TTSRequest;
     expect(sent.text).toBe('Hello world');
     expect(sent.sessionId).toBe('session-1');
-    expect(sent.language).toBe('en');
+    expect(sent.language).toBe('en-US'); // en maps to en-US (Req 3.3, 9.1)
     expect(sent.speed).toBe('normal');
   });
 
@@ -177,7 +179,20 @@ describe('TTSEngine.speak — retry and fallback', () => {
 // ---------------------------------------------------------------------------
 
 describe('TTSEngine.speak — language handling', () => {
-  it('passes supported language through unchanged', async () => {
+  it('maps en to en-US in outbound payload (Req 3.3, 9.1)', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    const { callbacks, unsupportedLangs } = makeCallbacks();
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+    await engine.speak('Hello', { ...BASE_OPTIONS, language: 'en' });
+
+    const sent = ws.send.mock.calls[0][0] as TTSRequest;
+    expect(sent.language).toBe('en-US');
+    expect(unsupportedLangs).toHaveLength(0);
+  });
+
+  it('maps es to es-ES in outbound payload (Req 3.3, 9.2)', async () => {
     const rl = makeMockRateLimiter();
     const ws = makeMockWsManager();
     const { callbacks, unsupportedLangs } = makeCallbacks();
@@ -186,11 +201,11 @@ describe('TTSEngine.speak — language handling', () => {
     await engine.speak('Hola', { ...BASE_OPTIONS, language: 'es' });
 
     const sent = ws.send.mock.calls[0][0] as TTSRequest;
-    expect(sent.language).toBe('es');
+    expect(sent.language).toBe('es-ES');
     expect(unsupportedLangs).toHaveLength(0);
   });
 
-  it('defaults to English and calls onUnsupportedLanguage for unknown language', async () => {
+  it('maps unsupported locale to en-US and fires onUnsupportedLanguage (Req 9.3)', async () => {
     const rl = makeMockRateLimiter();
     const ws = makeMockWsManager();
     const { callbacks, unsupportedLangs } = makeCallbacks();
@@ -199,12 +214,12 @@ describe('TTSEngine.speak — language handling', () => {
     await engine.speak('Hello', { ...BASE_OPTIONS, language: 'xx' });
 
     const sent = ws.send.mock.calls[0][0] as TTSRequest;
-    expect(sent.language).toBe('en');
+    expect(sent.language).toBe('en-US');
     expect(unsupportedLangs).toEqual(['xx']);
   });
 
-  it.each(['en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh'])(
-    'accepts supported language %s without fallback',
+  it.each(['fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh'])(
+    'treats formerly-supported language %s as unsupported (Req 9.3)',
     async (lang) => {
       const rl = makeMockRateLimiter();
       const ws = makeMockWsManager();
@@ -213,9 +228,9 @@ describe('TTSEngine.speak — language handling', () => {
 
       await engine.speak('text', { ...BASE_OPTIONS, language: lang });
 
-      expect(unsupportedLangs).toHaveLength(0);
+      expect(unsupportedLangs).toContain(lang);
       const sent = ws.send.mock.calls[0][0] as TTSRequest;
-      expect(sent.language).toBe(lang);
+      expect(sent.language).toBe('en-US');
     },
   );
 });
@@ -297,18 +312,99 @@ describe('TTSEngine.speak — voiceId', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Property-Based Tests
+// speak — auth error handling (Req 2.3, 2.4, 9.1, 9.2, 9.3)
+// ---------------------------------------------------------------------------
+
+describe('TTSEngine.speak — auth error handling', () => {
+  it('401 response fires onAuthError + onTextFallback with no retry', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    ws.send.mockImplementation(() => { throw new AuthError(401); });
+    const { callbacks, fallbackTexts, authErrors } = makeCallbacks();
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+    await engine.speak('Auth fail text', BASE_OPTIONS);
+
+    expect(authErrors).toEqual([401]);
+    expect(fallbackTexts).toEqual(['Auth fail text']);
+    // No retry — send called only once
+    expect(ws.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('403 response fires onAuthError + onTextFallback with no retry', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    ws.send.mockImplementation(() => { throw new AuthError(403); });
+    const { callbacks, fallbackTexts, authErrors } = makeCallbacks();
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+    await engine.speak('Forbidden text', BASE_OPTIONS);
+
+    expect(authErrors).toEqual([403]);
+    expect(fallbackTexts).toEqual(['Forbidden text']);
+    // No retry — send called only once
+    expect(ws.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('auth error releases the rate-limiter slot exactly once (no retry)', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    ws.send.mockImplementation(() => { throw new AuthError(401); });
+    const { callbacks } = makeCallbacks();
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+    await engine.speak('text', BASE_OPTIONS);
+
+    expect(rl.acquire).toHaveBeenCalledTimes(1);
+    expect(rl.release).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// speak — rate-limit timeout (Req 10.4)
+// ---------------------------------------------------------------------------
+
+describe('TTSEngine.speak — rate-limit timeout', () => {
+  it('rate-limit timeout fires onTextFallback with original text', async () => {
+    const rl = makeMockRateLimiter();
+    rl.acquire.mockRejectedValue(new Error('Rate limiter timeout'));
+    const ws = makeMockWsManager();
+    const { callbacks, fallbackTexts } = makeCallbacks();
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+    await engine.speak('Timeout text', BASE_OPTIONS);
+
+    expect(fallbackTexts).toEqual(['Timeout text']);
+    // WebSocket send should never be called
+    expect(ws.send).not.toHaveBeenCalled();
+  });
+
+  it('rate-limit timeout does not retry', async () => {
+    const rl = makeMockRateLimiter();
+    rl.acquire.mockRejectedValue(new Error('Rate limiter timeout'));
+    const ws = makeMockWsManager();
+    const { callbacks } = makeCallbacks();
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+    await engine.speak('text', BASE_OPTIONS);
+
+    // acquire called once, rejected immediately — no retry
+    expect(rl.acquire).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ---------------------------------------------------------------------------
 
 import * as fc from 'fast-check';
 
-// Feature: wellflow-voice-wellness-assistant, Property 7: TTS language consistency
-// Validates: Requirements 3.3, 10.1, 10.3
+// Feature: murf-ai-voice-integration, Property 4: TTSOptions language and speed are faithfully mapped
+// Validates: Requirements 3.3, 3.4, 9.1, 9.2
 
-const SUPPORTED_LANGS = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh'] as const;
+const SUPPORTED_LANGS = ['en', 'es'] as const;
+const LANGUAGE_MAP_EXPECTED: Record<string, string> = { en: 'en-US', es: 'es-ES' };
 
-describe('TTSEngine — Property 7: TTS language consistency', () => {
-  it('supported language: sent language matches exactly and onUnsupportedLanguage is NOT called', async () => {
+describe('TTSEngine — Property 4: TTSOptions language and speed are faithfully mapped', () => {
+  it('supported language is mapped to Murf API code and onUnsupportedLanguage is NOT called', async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.constantFrom(...SUPPORTED_LANGS),
@@ -321,7 +417,7 @@ describe('TTSEngine — Property 7: TTS language consistency', () => {
           await engine.speak('test', { ...BASE_OPTIONS, language: lang });
 
           const sent = ws.send.mock.calls[0][0] as TTSRequest;
-          expect(sent.language).toBe(lang);
+          expect(sent.language).toBe(LANGUAGE_MAP_EXPECTED[lang]);
           expect(unsupportedLangs).toHaveLength(0);
         },
       ),
@@ -329,7 +425,7 @@ describe('TTSEngine — Property 7: TTS language consistency', () => {
     );
   });
 
-  it('unsupported language: sent language is "en" and onUnsupportedLanguage IS called with original language', async () => {
+  it('unsupported language: sent language is "en-US" and onUnsupportedLanguage IS called with original language', async () => {
     const supportedSet = new Set<string>(SUPPORTED_LANGS);
 
     await fc.assert(
@@ -344,7 +440,7 @@ describe('TTSEngine — Property 7: TTS language consistency', () => {
           await engine.speak('test', { ...BASE_OPTIONS, language: lang });
 
           const sent = ws.send.mock.calls[0][0] as TTSRequest;
-          expect(sent.language).toBe('en');
+          expect(sent.language).toBe('en-US');
           expect(unsupportedLangs).toContain(lang);
         },
       ),
@@ -353,13 +449,13 @@ describe('TTSEngine — Property 7: TTS language consistency', () => {
   });
 });
 
-// Feature: wellflow-voice-wellness-assistant, Property 28: TTS speed setting propagation
-// Validates: Requirements 11.3
+// Feature: murf-ai-voice-integration, Property 4 (speed): speed is faithfully mapped
+// Validates: Requirements 3.4, 9.1, 9.2
 
 const SPEED_VALUES = ['slow', 'normal', 'fast'] as const;
 type SpeedValue = typeof SPEED_VALUES[number];
 
-describe('TTSEngine — Property 28: TTS speed setting propagation', () => {
+describe('TTSEngine — Property 4 (speed): speed is faithfully mapped', () => {
   it('after setSpeed(speed), every subsequent speak call uses that speed in the TTS request payload', async () => {
     await fc.assert(
       fc.asyncProperty(
@@ -415,11 +511,11 @@ describe('TTSEngine — Property 6: TTS streaming latency', () => {
   });
 });
 
-// Feature: wellflow-voice-wellness-assistant, Property 26: Multilingual TTS support
-// Validates: Requirements 10.2
+// Feature: murf-ai-voice-integration, Property 4 (multilingual): supported languages map correctly
+// Validates: Requirements 9.1, 9.2
 
-describe('TTSEngine — Property 26: Multilingual TTS support', () => {
-  it('each supported language is sent as-is without triggering unsupported language callback', async () => {
+describe('TTSEngine — Property 4 (multilingual): supported languages map correctly', () => {
+  it('each supported language maps to the correct Murf API code without triggering unsupported language callback', async () => {
     await fc.assert(
       fc.asyncProperty(
         fc.constantFrom(...SUPPORTED_LANGS),
@@ -433,7 +529,7 @@ describe('TTSEngine — Property 26: Multilingual TTS support', () => {
           await engine.speak(text, { ...BASE_OPTIONS, language: lang });
 
           const sent = ws.send.mock.calls[0][0] as TTSRequest;
-          expect(sent.language).toBe(lang);
+          expect(sent.language).toBe(LANGUAGE_MAP_EXPECTED[lang]);
           expect(unsupportedLangs).toHaveLength(0);
         },
       ),
@@ -486,7 +582,7 @@ describe('TTSEngine — TTS error flows', () => {
     expect(fallbackTexts).toHaveLength(0);
   });
 
-  it('calls onUnsupportedLanguage and falls back to English for unsupported language', async () => {
+  it('calls onUnsupportedLanguage and falls back to en-US for unsupported language', async () => {
     const rl = makeMockRateLimiter();
     const ws = makeMockWsManager();
     const { callbacks, unsupportedLangs } = makeCallbacks();
@@ -496,7 +592,7 @@ describe('TTSEngine — TTS error flows', () => {
 
     expect(unsupportedLangs).toEqual(['zz']);
     const sent = ws.send.mock.calls[0][0] as TTSRequest;
-    expect(sent.language).toBe('en');
+    expect(sent.language).toBe('en-US');
   });
 
   it('releases rate-limiter slot on both attempts even when both fail', async () => {
@@ -607,3 +703,182 @@ describe('TTSEngine — Property 31: Voice resolution priority', () => {
 function makeMockWs() {
   return makeMockWsManager();
 }
+
+// Feature: murf-ai-voice-integration, Property 5: Double TTS failure triggers text fallback with original text
+// Validates: Requirement 3.6
+
+describe('TTSEngine — Property 5: Double TTS failure triggers text fallback with original text', () => {
+  it('when both TTS attempts fail, onTextFallback is called with exactly the original text', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.string({ minLength: 1 }),
+        async (text) => {
+          const rl = makeMockRateLimiter();
+          const ws = makeMockWsManager();
+          ws.send.mockImplementation(() => { throw new Error('API error'); });
+          const { callbacks, fallbackTexts } = makeCallbacks();
+          const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+          await engine.speak(text, BASE_OPTIONS);
+
+          expect(fallbackTexts).toHaveLength(1);
+          expect(fallbackTexts[0]).toBe(text);
+          expect(ws.send).toHaveBeenCalledTimes(2);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+});
+
+// Feature: murf-ai-voice-integration, Property 2: Auth errors suppress retries and activate fallback
+// Validates: Requirements 2.3, 2.4
+
+describe('TTSEngine — Property 2: Auth errors suppress retries and activate fallback', () => {
+  it('HTTP 401 or 403 invokes onAuthError, activates text fallback, and makes no retry', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.constantFrom(401, 403),
+        async (statusCode) => {
+          const rl = makeMockRateLimiter();
+          const ws = makeMockWsManager();
+          ws.send.mockImplementation(() => { throw new AuthError(statusCode); });
+          const { callbacks, fallbackTexts, authErrors } = makeCallbacks();
+          const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+          await engine.speak('auth test', BASE_OPTIONS);
+
+          expect(authErrors).toEqual([statusCode]);
+          expect(fallbackTexts).toHaveLength(1);
+          // No retry — send called exactly once
+          expect(ws.send).toHaveBeenCalledTimes(1);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Task 7.1: Unit tests for voice resolution priority chain
+// Feature: murf-ai-voice-integration
+// Requirements: 8.1, 8.2, 8.3
+// ---------------------------------------------------------------------------
+
+describe('TTSEngine — voice resolution priority (Req 8.1, 8.2, 8.3)', () => {
+  it('explicit voiceId in TTSOptions overrides activity assignment, fallback, and default', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    const { callbacks } = makeCallbacks();
+    const resolver = makeVoiceResolver('activity-voice', 'fallback-voice');
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks, resolver);
+
+    await engine.speak('test', { ...BASE_OPTIONS, voiceId: 'explicit-override' }, 'BREATHING_EXERCISE');
+
+    const sent = ws.send.mock.calls[0][0] as TTSRequest;
+    expect(sent.voiceId).toBe('explicit-override');
+  });
+
+  it('activity assignment used when no explicit voiceId in options (Req 8.1)', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    const { callbacks } = makeCallbacks();
+    const resolver = makeVoiceResolver('activity-voice', 'fallback-voice');
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks, resolver);
+
+    await engine.speak('test', BASE_OPTIONS, 'MINDFULNESS_SESSION');
+
+    const sent = ws.send.mock.calls[0][0] as TTSRequest;
+    expect(sent.voiceId).toBe('activity-voice');
+  });
+
+  it('fallback voice used when no activity assignment exists (Req 8.2)', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    const { callbacks } = makeCallbacks();
+    const resolver = makeVoiceResolver(null, 'my-fallback-voice');
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks, resolver);
+
+    await engine.speak('test', BASE_OPTIONS, 'STRESS_RELIEF');
+
+    const sent = ws.send.mock.calls[0][0] as TTSRequest;
+    expect(sent.voiceId).toBe('my-fallback-voice');
+  });
+
+  it('"murf-default" used when neither activity assignment nor fallback is set (Req 8.3)', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    const { callbacks } = makeCallbacks();
+    const resolver = makeVoiceResolver(null, null);
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks, resolver);
+
+    await engine.speak('test', BASE_OPTIONS, 'ROUTINE_REMINDER');
+
+    const sent = ws.send.mock.calls[0][0] as TTSRequest;
+    expect(sent.voiceId).toBe('murf-default');
+  });
+
+  it('"murf-default" used when no voiceResolver is provided and no voiceId in options', async () => {
+    const rl = makeMockRateLimiter();
+    const ws = makeMockWsManager();
+    const { callbacks } = makeCallbacks();
+    // No voiceResolver injected
+    const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks);
+
+    await engine.speak('test', BASE_OPTIONS, 'BREATHING_EXERCISE');
+
+    const sent = ws.send.mock.calls[0][0] as TTSRequest;
+    // Without a resolver, _resolveVoiceId returns undefined, so voiceId is undefined
+    expect(sent.voiceId).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Task 7.2: Property 10 — Voice resolution follows priority order
+// Feature: murf-ai-voice-integration, Property 10: Voice resolution follows priority order
+// Validates: Requirements 8.1, 8.2, 8.3
+// ---------------------------------------------------------------------------
+
+describe('TTSEngine — Property 10: Voice resolution follows priority order', () => {
+  it('resolved voice ID is the highest-priority non-null value in the chain', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.record({
+          voiceId: fc.option(fc.string({ minLength: 1 })),
+          activityAssignment: fc.option(fc.string({ minLength: 1 })),
+          fallback: fc.option(fc.string({ minLength: 1 })),
+        }),
+        async ({ voiceId, activityAssignment, fallback }) => {
+          const rl = makeMockRateLimiter();
+          const ws = makeMockWsManager();
+          const { callbacks } = makeCallbacks();
+          const resolver = makeVoiceResolver(activityAssignment ?? null, fallback ?? null);
+          const engine = new TTSEngine(rl, ws as unknown as WebSocketManager, callbacks, resolver);
+
+          const options = voiceId != null
+            ? { ...BASE_OPTIONS, voiceId }
+            : BASE_OPTIONS;
+
+          await engine.speak('test', options, 'BREATHING_EXERCISE');
+
+          const sent = ws.send.mock.calls[0][0] as TTSRequest;
+
+          // Determine expected voice by priority chain
+          let expected: string | undefined;
+          if (voiceId != null) {
+            expected = voiceId;
+          } else if (activityAssignment != null) {
+            expected = activityAssignment;
+          } else if (fallback != null) {
+            expected = fallback;
+          } else {
+            expected = 'murf-default';
+          }
+
+          expect(sent.voiceId).toBe(expected);
+        },
+      ),
+      { numRuns: 100 },
+    );
+  });
+});

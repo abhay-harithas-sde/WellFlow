@@ -15,7 +15,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "allowJs": true,
     "paths": {
@@ -51,7 +51,8 @@
     "lib/**/*",
     "hooks/**/*",
     "messages/**/*",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

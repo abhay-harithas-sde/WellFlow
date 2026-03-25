@@ -1,6 +1,7 @@
-// Feature: wellflow-voice-wellness-assistant
+// Feature: wellflow-voice-wellness-assistant / murf-ai-voice-integration
 // WellFlowAssistant: wires all components together into the full pipeline
 // Requirements: 1.1–1.5, 2.1–2.5, 3.1–3.6, 4.1–4.6, 12.7–12.11, 13.3–13.4, 14.2–14.3, 15.3, 16.2–16.4
+// Murf AI wiring: 1.1, 1.2, 5.1, 11.1, 11.3
 
 import { Session, ActivityType, OutboundMessage, SessionSummary } from '../types';
 import { ProfileStore } from '../store/ProfileStore';
@@ -27,6 +28,9 @@ import { WearableStreamAdapter } from './WearableBridge';
 import { WeeklySummaryReport } from '../types';
 import { PersonalizationEngine } from './PersonalizationEngine';
 import { CommunityManager, CommunityManagerCallbacks } from './CommunityManager';
+import { TextFallbackDisplay, FallbackDisplayAdapter } from './TextFallbackDisplay';
+import { getMurfApiKey } from '../../lib/murf-config';
+import { MurfLogger } from '../../lib/murf-logger';
 
 export interface WellFlowAssistantCallbacks {
   /** Called when TTS fails twice — display text on screen (Req 3.6) */
@@ -68,6 +72,16 @@ export interface WellFlowAssistantConfig {
   calendarAdapter?: CalendarPlatformAdapter;
   /** Optional wearable stream adapter — if omitted, wearable bridge is a no-op */
   wearableAdapter?: WearableStreamAdapter;
+  /**
+   * Adapter for the text fallback display element (Req 11.1, 11.3).
+   * If omitted, a no-op adapter is used (text fallback is silently swallowed).
+   */
+  fallbackDisplayAdapter?: FallbackDisplayAdapter;
+  /**
+   * Initial session language ('en' | 'es'). Defaults to 'en'.
+   * Used to initialise VoiceSelector before the first TTS request (Req 5.1).
+   */
+  sessionLanguage?: string;
   callbacks: WellFlowAssistantCallbacks;
 }
 
@@ -122,6 +136,8 @@ export class WellFlowAssistant {
 
   private activeSession: Session | null = null;
   private readonly callbacks: WellFlowAssistantCallbacks;
+  private readonly textFallbackDisplay: TextFallbackDisplay;
+  private readonly initialSessionLanguage: string;
 
   constructor(config: WellFlowAssistantConfig) {
     const {
@@ -131,16 +147,38 @@ export class WellFlowAssistant {
       biometricFetcher,
       calendarAdapter,
       wearableAdapter,
+      fallbackDisplayAdapter,
+      sessionLanguage = 'en',
       callbacks,
     } = config;
 
     this.callbacks = callbacks;
 
     // ----------------------------------------------------------------
+    // 0. Validate Murf API key at startup (Req 1.1, 1.2)
+    // ----------------------------------------------------------------
+    const murfApiKey = getMurfApiKey();
+
+    // ----------------------------------------------------------------
+    // 0a. Instantiate MurfLogger with the validated key (Req 13.1–13.4)
+    // ----------------------------------------------------------------
+    const murfLogger = new MurfLogger(murfApiKey);
+
+    // ----------------------------------------------------------------
+    // 0b. Text fallback display (Req 11.1, 11.3)
+    // ----------------------------------------------------------------
+    const noopAdapter: FallbackDisplayAdapter = {
+      setText: () => {},
+      setVisible: () => {},
+    };
+    this.textFallbackDisplay = new TextFallbackDisplay(fallbackDisplayAdapter ?? noopAdapter);
+    this.initialSessionLanguage = sessionLanguage;
+
+    // ----------------------------------------------------------------
     // 1. Rate limiter + WebSocket (Req 3.4, 3.5, 4.1–4.6)
     // ----------------------------------------------------------------
     this.rateLimiter = new RateLimiter();
-    this.wsManager = new WebSocketManager();
+    this.wsManager = new WebSocketManager('/api/murf/tts', undefined, murfLogger);
     this.wsManager.onMaxRetriesExceeded = (sessionId) => callbacks.onConnectionLost(sessionId);
 
     // ----------------------------------------------------------------
@@ -203,7 +241,11 @@ export class WellFlowAssistant {
     // 4. TTS engine with voice resolver wired in (Req 3.1–3.6, 12.7–12.9)
     // ----------------------------------------------------------------
     const ttsCallbacks: TTSEngineCallbacks = {
-      onTextFallback: (text) => callbacks.onTextFallback(text),
+      onTextFallback: (text) => {
+        // Wire onTextFallback to TextFallbackDisplay.show() (Req 11.1)
+        this.textFallbackDisplay.show(text);
+        callbacks.onTextFallback(text);
+      },
       onUnsupportedLanguage: (lang) => callbacks.onUnsupportedLanguage(lang),
     };
     this.ttsEngine = new TTSEngine(
@@ -211,6 +253,7 @@ export class WellFlowAssistant {
       this.wsManager,
       ttsCallbacks,
       this.voiceSelector, // voice resolution: activity → fallback → system default
+      murfLogger,         // observability logger (Req 13.1, 13.4)
     );
 
     // ----------------------------------------------------------------
@@ -411,6 +454,9 @@ export class WellFlowAssistant {
     // Load VoiceProfile before session starts (Req 12.11)
     await this.voiceSelector.loadVoiceProfile(userId);
 
+    // Initialise VoiceSelector (fetch voice catalogue) before first TTS request (Req 5.1)
+    await this.voiceSelector.initialise(this.initialSessionLanguage);
+
     // Create session + fetch biometric snapshot (Req 9.1, 13.3)
     const session = await this.sessionManager.startSession(userId);
     this.activeSession = session;
@@ -548,11 +594,13 @@ export class WellFlowAssistant {
     language: string,
   ): Promise<void> {
     // Speak the response text via TTS (Req 3.1)
+    // On successful TTS completion, hide the text fallback display (Req 11.3)
     await this.ttsEngine.speak(responseText, {
       language,
       speed: 'normal',
       sessionId,
     }, this._intentToActivityType(intentType));
+    this.textFallbackDisplay.hide();
 
     // Dispatch to feature component
     switch (intentType) {

@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "name": "Auto Check Terminal Errors",
+  "description": "After any TSX/TS file is edited, reads the dev server terminal output and fixes any errors found",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.tsx",
+      "**/*.ts"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check the running dev server terminal (terminalId: 3) for any new errors or warnings using getProcessOutput. If there are errors, analyze and fix them in the relevant source files. Focus on runtime errors, module not found, and React Server Component issues."
+  }
+}

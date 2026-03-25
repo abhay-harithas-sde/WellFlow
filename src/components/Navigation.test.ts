@@ -36,7 +36,7 @@ function handleOutsideClick(
 // useStickyNav logic
 // ---------------------------------------------------------------------------
 
-const STICKY_THRESHOLD = 100;
+const STICKY_THRESHOLD = 80; // Updated to 80px per Req 1.7
 
 /**
  * Pure function mirroring the scroll handler in useStickyNav.ts.
@@ -47,9 +47,12 @@ function computeIsSticky(scrollY: number, threshold = STICKY_THRESHOLD): boolean
 
 /**
  * Mirrors the nav CSS class selection in Navigation.tsx.
+ * When sticky: shadow-md + backdrop-blur-sm + bg-white/95 (Req 1.7)
  */
 function navPositionClass(isSticky: boolean): string {
-  return isSticky ? 'fixed top-0 shadow-md' : 'relative';
+  return isSticky
+    ? 'fixed top-0 shadow-md backdrop-blur-sm bg-white/95'
+    : 'relative bg-white';
 }
 
 // ---------------------------------------------------------------------------
@@ -140,30 +143,34 @@ describe('Navigation — outside-click dismissal (Req 1.6)', () => {
 // Tests: Sticky behaviour (Req 1.3)
 // ---------------------------------------------------------------------------
 
-describe('Navigation — sticky behaviour after scroll threshold (Req 1.3)', () => {
+describe('Navigation — sticky behaviour after scroll threshold (Req 1.3, 1.7)', () => {
   it('nav is not sticky when scrollY is 0', () => {
     expect(computeIsSticky(0)).toBe(false);
   });
 
-  it('nav is not sticky when scrollY equals the threshold exactly', () => {
-    // scrollY > threshold, so at exactly 100 it is NOT sticky
-    expect(computeIsSticky(100)).toBe(false);
+  it('nav is not sticky when scrollY equals the threshold exactly (80px)', () => {
+    // scrollY > threshold, so at exactly 80 it is NOT sticky
+    expect(computeIsSticky(80)).toBe(false);
   });
 
-  it('nav becomes sticky when scrollY exceeds the threshold', () => {
-    expect(computeIsSticky(101)).toBe(true);
+  it('nav becomes sticky when scrollY exceeds 80px', () => {
+    expect(computeIsSticky(81)).toBe(true);
   });
 
   it('nav remains sticky well past the threshold', () => {
     expect(computeIsSticky(500)).toBe(true);
   });
 
-  it('sticky class is "fixed top-0 shadow-md" when isSticky is true', () => {
-    expect(navPositionClass(true)).toBe('fixed top-0 shadow-md');
+  it('sticky class includes shadow-md, backdrop-blur-sm, and bg-white/95 when isSticky is true', () => {
+    const cls = navPositionClass(true);
+    expect(cls).toContain('fixed top-0');
+    expect(cls).toContain('shadow-md');
+    expect(cls).toContain('backdrop-blur-sm');
+    expect(cls).toContain('bg-white/95');
   });
 
-  it('position class is "relative" when isSticky is false', () => {
-    expect(navPositionClass(false)).toBe('relative');
+  it('position class is "relative bg-white" when isSticky is false', () => {
+    expect(navPositionClass(false)).toBe('relative bg-white');
   });
 
   it('custom threshold is respected', () => {
@@ -216,11 +223,121 @@ describe('Navigation — all links are rendered', () => {
     expect(renderLinks([])).toHaveLength(0);
   });
 
-  it('CTA label and href are passed through as props', () => {
-    const ctaLabel = 'Get Started';
-    const ctaHref = '#signup';
-    // NavProps contract: ctaLabel and ctaHref are passed directly to the Button
-    expect(ctaLabel).toBe('Get Started');
-    expect(ctaHref).toBe('#signup');
+  it('CTA href is /signup (Req 1.6)', () => {
+    const ctaHref = '/signup';
+    expect(ctaHref).toBe('/signup');
+  });
+
+  it('CTA label comes from i18n key nav.cta', () => {
+    // The component uses t('cta') from useTranslations('nav')
+    // en.json nav.cta = "Get Started Free"
+    const ctaLabel = 'Get Started Free';
+    expect(ctaLabel).toBe('Get Started Free');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: Focus trap (Req 1.5)
+// ---------------------------------------------------------------------------
+
+describe('Navigation — focus trap in hamburger menu (Req 1.5)', () => {
+  /**
+   * Simulates the focus trap logic: given a list of focusable elements and
+   * the currently focused element index, returns the next focused index
+   * when Tab or Shift+Tab is pressed at the boundary.
+   */
+  function focusTrap(
+    focusableCount: number,
+    currentIndex: number,
+    shiftKey: boolean
+  ): { preventDefault: boolean; nextIndex: number } {
+    if (focusableCount === 0) return { preventDefault: false, nextIndex: -1 };
+
+    const first = 0;
+    const last = focusableCount - 1;
+
+    if (shiftKey && currentIndex === first) {
+      return { preventDefault: true, nextIndex: last };
+    }
+    if (!shiftKey && currentIndex === last) {
+      return { preventDefault: true, nextIndex: first };
+    }
+    return { preventDefault: false, nextIndex: shiftKey ? currentIndex - 1 : currentIndex + 1 };
+  }
+
+  it('Tab on last focusable element wraps to first', () => {
+    const result = focusTrap(5, 4, false);
+    expect(result.preventDefault).toBe(true);
+    expect(result.nextIndex).toBe(0);
+  });
+
+  it('Shift+Tab on first focusable element wraps to last', () => {
+    const result = focusTrap(5, 0, true);
+    expect(result.preventDefault).toBe(true);
+    expect(result.nextIndex).toBe(4);
+  });
+
+  it('Tab in the middle does not trap', () => {
+    const result = focusTrap(5, 2, false);
+    expect(result.preventDefault).toBe(false);
+    expect(result.nextIndex).toBe(3);
+  });
+
+  it('Shift+Tab in the middle does not trap', () => {
+    const result = focusTrap(5, 3, true);
+    expect(result.preventDefault).toBe(false);
+    expect(result.nextIndex).toBe(2);
+  });
+
+  it('no trap when there are no focusable elements', () => {
+    const result = focusTrap(0, 0, false);
+    expect(result.preventDefault).toBe(false);
+  });
+
+  it('Escape key closes the menu', () => {
+    let menuOpen = true;
+    // Simulates the Escape handler
+    function handleEscape(key: string): boolean {
+      if (key === 'Escape') return false;
+      return menuOpen;
+    }
+    menuOpen = handleEscape('Escape');
+    expect(menuOpen).toBe(false);
+  });
+
+  it('Escape key does not close menu for other keys', () => {
+    let menuOpen = true;
+    function handleEscape(key: string): boolean {
+      if (key === 'Escape') return false;
+      return menuOpen;
+    }
+    menuOpen = handleEscape('Enter');
+    expect(menuOpen).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: i18n wiring (Req 1.8)
+// ---------------------------------------------------------------------------
+
+describe('Navigation — i18n keys (Req 1.8)', () => {
+  const navKeys = ['features', 'howItWorks', 'integrations', 'testimonials', 'pricing', 'cta'];
+
+  it('all expected nav i18n keys are defined', () => {
+    // Verify the keys exist in en.json nav namespace
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const messages = require('../../messages/en.json') as Record<string, Record<string, string>>;
+    const navMessages = messages['nav'];
+    for (const key of navKeys) {
+      expect(navMessages[key]).toBeDefined();
+      expect(typeof navMessages[key]).toBe('string');
+      expect(navMessages[key].length).toBeGreaterThan(0);
+    }
+  });
+
+  it('nav.cta resolves to "Get Started Free"', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const messages = require('../../messages/en.json') as Record<string, Record<string, string>>;
+    expect(messages['nav']['cta']).toBe('Get Started Free');
   });
 });

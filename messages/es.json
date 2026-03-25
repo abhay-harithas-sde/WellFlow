@@ -11,9 +11,15 @@
     "headline": "Tu Compañero de Bienestar por Voz",
     "subheadline": "WellFlow te guía a través de ejercicios de respiración, sesiones de mindfulness y rutinas de bienestar diarias — sin manos, solo hablando.",
     "cta": "Inicia Tu Prueba Gratuita",
+    "hearVoice": "Escucha la Voz de WellFlow",
     "trustUsers": "Más de 50,000 usuarios",
     "trustRating": "4.8 estrellas en App Store",
-    "trustAward": "Mejor App de Bienestar 2024"
+    "trustAward": "Mejor App de Bienestar 2024",
+    "ttsWidget": "Vista previa de voz de WellFlow",
+    "ttsPlay": "Reproducir",
+    "ttsStop": "Detener",
+    "ttsError": "No se pudo cargar la voz. Por favor, inténtalo de nuevo.",
+    "ttsRetry": "Reintentar"
   },
   "features": {
     "title": "Todo Lo Que Necesitas para Prosperar",
@@ -82,28 +88,124 @@
       "healthFitness": "Salud y Fitness",
       "calendar": "Calendario",
       "wearables": "Wearables",
-      "messaging": "Mensajería"
+      "messaging": "Mensajería",
+      "voiceAI": "Voz e IA",
+      "wellnessPlatform": "Plataforma de Bienestar"
+    },
+    "murf": {
+      "name": "Murf AI",
+      "desc": "Voces naturales de texto a voz que impulsan las sesiones guiadas de WellFlow."
+    },
+    "wellflow": {
+      "name": "Plataforma WellFlow",
+      "desc": "El motor de bienestar completo detrás de las guías de respiración, sesiones de mindfulness y análisis."
     }
   },
   "testimonials": {
     "title": "Amado por Miles",
-    "aggregate": "4.8 de 5 estrellas de más de 12,000 reseñas"
+    "aggregate": "4.8 de 5 estrellas de más de 12,000 reseñas",
+    "noReviews": "Aún no hay testimonios disponibles. ¡Vuelve pronto!",
+    "carouselLabel": "Carrusel de testimonios",
+    "navLabel": "Navegación de testimonios",
+    "prevLabel": "Testimonio anterior",
+    "nextLabel": "Siguiente testimonio",
+    "dotLabel": "Ir al testimonio {n}",
+    "positionAnnouncement": "Testimonio {current} de {total}",
+    "averageRatingLabel": "Calificación promedio: {rating} de 5 estrellas de {total} reseñas",
+    "ratingDisplay": "{rating} de 5",
+    "reviewCount": "{total} reseñas",
+    "reviewCountSingle": "1 reseña",
+    "items": [
+      {
+        "id": "1",
+        "quote": "WellFlow ha transformado completamente mi rutina matutina. Los ejercicios de respiración guiados por voz me ayudan a comenzar cada día con claridad y calma.",
+        "author": "Sarah M.",
+        "rating": 5
+      },
+      {
+        "id": "2",
+        "quote": "Me encanta cómo se sincroniza perfectamente con mi Apple Watch. Nunca había sido tan fácil rastrear mis niveles de estrés durante el día.",
+        "author": "James T.",
+        "rating": 5
+      },
+      {
+        "id": "3",
+        "quote": "Las sesiones de mindfulness son genuinamente útiles. Después de dos semanas noté una diferencia real en cómo manejo la presión del trabajo.",
+        "author": "Priya K.",
+        "rating": 4
+      },
+      {
+        "id": "4",
+        "quote": "Poder simplemente expresar mi intención de bienestar y obtener una respuesta guiada instantánea se siente como tener un entrenador personal en mi bolsillo.",
+        "author": "Carlos R.",
+        "rating": 5
+      },
+      {
+        "id": "5",
+        "quote": "La función de comunidad me mantiene responsable. Saber que otros están en el mismo camino hace que sea mucho más fácil mantener la constancia.",
+        "author": "Aisha N.",
+        "rating": 4
+      },
+      {
+        "id": "6",
+        "quote": "La calidad de voz de Murf AI es increíble — suena tan natural y tranquilizadora que olvido que estoy escuchando una voz sintetizada. Realmente mejora cada sesión.",
+        "author": "Lena W.",
+        "rating": 5
+      },
+      {
+        "id": "7",
+        "quote": "Las integraciones de la plataforma WellFlow son un cambio de juego. Se conecta con mi Google Calendar, Apple Health y Slack para que mi rutina de bienestar encaje perfectamente en mi jornada laboral.",
+        "author": "Marcus D.",
+        "rating": 5
+      }
+    ]
   },
   "pricing": {
     "title": "Precios Simples y Transparentes",
+    "subtitle": "Elige el plan que se adapte a tu camino de bienestar. Actualiza o cambia en cualquier momento.",
     "monthly": "Mensual",
     "annual": "Anual",
     "annualSavings": "Ahorra 20%",
+    "savingsBadge": "Ahorra {percent}%",
     "guarantee": "Garantía de devolución de dinero de 30 días. Sin preguntas.",
     "tiers": {
       "free": {
         "name": "Gratis",
-        "cta": "Empieza Gratis"
+        "cta": "Empieza Gratis",
+        "features": [
+          "Ejercicios de respiración guiados por voz",
+          "Sesiones básicas de mindfulness",
+          "3 recordatorios de rutina por día",
+          "Acceso a la comunidad"
+        ]
       },
       "premium": {
         "name": "Premium",
         "cta": "Iniciar Prueba Gratuita",
-        "badge": "Más Popular"
+        "badge": "Más Popular",
+        "features": [
+          "Todo lo de Gratis",
+          "Voz Murf AI",
+          "Sesiones de mindfulness ilimitadas",
+          "Sincronización de salud y wearables",
+          "Seguimiento de estrés y análisis",
+          "Recordatorios de rutina ilimitados",
+          "Soporte prioritario"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "cta": "Ir a Pro",
+        "features": [
+          "Todo lo de Premium",
+          "Voz Murf AI",
+          "Plataforma WellFlow Completa",
+          "Coaching avanzado con IA",
+          "Compartir en equipo y familia (hasta 5)",
+          "Programas de bienestar personalizados",
+          "Gestor de cuenta dedicado",
+          "Acceso anticipado a nuevas funciones"
+        ]
       }
     }
   },
@@ -120,6 +222,13 @@
     "social": {
       "twitter": "Twitter",
       "instagram": "Instagram"
+    },
+    "newsletter": {
+      "label": "Mantente al día",
+      "placeholder": "Ingresa tu correo",
+      "submit": "Suscribirse",
+      "success": "¡Gracias por suscribirte! Revisa tu bandeja de entrada para confirmar.",
+      "error": "Por favor ingresa una dirección de correo válida."
     }
   },
   "cookie": {
@@ -130,5 +239,92 @@
   },
   "a11y": {
     "skipToMain": "Saltar al contenido principal"
+  },
+  "stats": {
+    "users": "50,000+",
+    "sessions": "2M+",
+    "rating": "4.8",
+    "countries": "120+",
+    "usersLabel": "Usuarios Activos",
+    "sessionsLabel": "Sesiones Completadas",
+    "ratingLabel": "Calificación Promedio",
+    "countriesLabel": "Países con Cobertura"
+  },
+  "voiceDemo": {
+    "title": "Escucha la Voz de WellFlow",
+    "subtitle": "Experimenta la voz natural y tranquilizadora impulsada por Murf AI — elige una voz y escucha un guión de bienestar de muestra.",
+    "selectVoice": "Selecciona una voz",
+    "selectScript": "Elige un guión",
+    "play": "Reproducir",
+    "stop": "Detener",
+    "loading": "Cargando voces…",
+    "error": "No se pudieron cargar las voces. Por favor intenta de nuevo.",
+    "retry": "Reintentar",
+    "scripts": {
+      "breathing": "Inhala profundamente… mantén… y suelta lentamente. Lo estás haciendo muy bien.",
+      "mindfulness": "Cierra los ojos y lleva tu atención al momento presente. Observa cómo te sientes ahora mismo.",
+      "stress": "Suelta la tensión con cada exhalación. Tu cuerpo sabe cómo encontrar la calma — confía en él."
+    }
+  },
+  "demo": {
+    "title": "Prueba WellFlow Ahora Mismo",
+    "subtitle": "Sin registro. Experimenta un ejercicio de respiración en vivo o un chequeo de mindfulness impulsado por la plataforma WellFlow.",
+    "tabBreathing": "Ejercicio de Respiración",
+    "tabMindfulness": "Chequeo de Mindfulness",
+    "breathingStart": "Iniciar Ejercicio de Respiración",
+    "breathingStop": "Detener",
+    "breathingPhase": {
+      "inhale": "Inhala",
+      "hold": "Mantén",
+      "exhale": "Exhala"
+    },
+    "mindfulnessPrompt": "¿Cómo te sientes en este momento? Tómate un instante para conectar contigo mismo.",
+    "moodLabel": "Califica tu estado de ánimo (1 = bajo, 5 = excelente)",
+    "complete": "¡Excelente trabajo! Has completado tu sesión. ¿Listo para convertirlo en un hábito diario?",
+    "cta": "Inicia Tu Prueba Gratuita",
+    "ttsError": "Audio no disponible — por favor lee el mensaje anterior."
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "items": [
+      {
+        "question": "¿Cómo se compara la calidad de voz de WellFlow con otras apps?",
+        "answer": "WellFlow utiliza Murf AI, una de las plataformas de texto a voz más avanzadas disponibles. Obtienes voces naturales y similares a las humanas en múltiples estilos e idiomas — muy por encima de las voces robóticas de la mayoría de las apps de bienestar."
+      },
+      {
+        "question": "¿Qué idiomas admite WellFlow?",
+        "answer": "WellFlow actualmente admite inglés y español, con más idiomas en la hoja de ruta. La integración con Murf AI nos permite agregar nuevos idiomas rápidamente a medida que crece la demanda."
+      },
+      {
+        "question": "¿Con qué plataformas y apps se integra WellFlow?",
+        "answer": "WellFlow se integra con Apple Health, Google Fit, Fitbit, Garmin, Google Calendar, Outlook, Slack, WhatsApp y más. El motor de la plataforma WellFlow gestiona toda la lógica de sincronización para que tus datos de bienestar permanezcan conectados."
+      },
+      {
+        "question": "¿Cómo funcionan los precios y la facturación?",
+        "answer": "Ofrecemos un nivel Gratuito con funciones básicas, un nivel Premium con voz Murf AI y sesiones avanzadas, y un nivel Pro con la plataforma WellFlow completa. Puedes pagar mensual o anualmente — los planes anuales ahorran hasta un 20%. Todos los planes de pago incluyen una garantía de devolución de dinero de 30 días."
+      },
+      {
+        "question": "¿Son privados y seguros mis datos?",
+        "answer": "Sí. WellFlow cifra todos los datos personales y de salud en tránsito y en reposo. Nunca vendemos tus datos a terceros. Puedes exportar o eliminar tus datos en cualquier momento desde la configuración de tu cuenta."
+      },
+      {
+        "question": "¿Hay una prueba gratuita?",
+        "answer": "Por supuesto. Puedes comenzar con el nivel Gratuito de inmediato — sin tarjeta de crédito. Los planes Premium y Pro incluyen una prueba gratuita de 14 días para que puedas experimentar el conjunto completo de funciones antes de comprometerte."
+      },
+      {
+        "question": "¿Puedo cancelar mi suscripción en cualquier momento?",
+        "answer": "Sí, puedes cancelar en cualquier momento desde la configuración de tu cuenta. Si cancelas dentro de los 30 días de tu primer cargo pagado, recibirás un reembolso completo — sin preguntas."
+      },
+      {
+        "question": "¿Con qué dispositivos es compatible WellFlow?",
+        "answer": "WellFlow funciona en iOS (iPhone e iPad), Android y cualquier navegador web moderno. También se integra con Apple Watch, Wear OS, Fitbit y wearables Garmin para sesiones conscientes de tus biométricas en tiempo real."
+      }
+    ]
+  },
+  "cta": {
+    "headline": "Comienza Tu Viaje de Bienestar Hoy",
+    "subheadline": "Únete a más de 50,000 usuarios que han transformado sus rutinas diarias con la guía por voz de WellFlow.",
+    "primary": "Empieza Gratis",
+    "secondary": "Ver Precios"
   }
 }

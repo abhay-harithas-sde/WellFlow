@@ -1,4 +1,4 @@
-// Feature: wellflow-voice-wellness-assistant
+// Feature: murf-ai-voice-integration
 // Tests for WebSocketManager (Requirements 4.1–4.6)
 
 import * as fc from 'fast-check';
@@ -699,6 +699,100 @@ describe('WebSocketManager', () => {
               // At exactly 2000ms — reconnect attempt must have been scheduled
               jest.advanceTimersByTime(1);
               expect(factory).toHaveBeenCalledTimes(2);
+            } finally {
+              jest.useRealTimers();
+            }
+          },
+        ),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  // ----------------------------------------------------------------
+  // Property 6: Inactivity timer resets on every send (fast-check)
+  // ----------------------------------------------------------------
+
+  describe('Property 6: Inactivity timer resets on every send', () => {
+    // Feature: murf-ai-voice-integration, Property 6: Inactivity timer resets on every send
+    it('resets the inactivity timer to 3 minutes after each send, regardless of prior sends', async () => {
+      // Validates: Requirement 4.4
+      await fc.assert(
+        fc.asyncProperty(
+          fc.array(fc.string(), { minLength: 1 }),
+          async (messages) => {
+            jest.useFakeTimers();
+            try {
+              const ws = createMockWebSocket();
+              const { manager } = buildManager([ws]);
+
+              const reasons: CloseReason[] = [];
+              manager.onClose = (r) => reasons.push(r);
+
+              const connectPromise = manager.connect('session-p6');
+              ws.simulateOpen();
+              await connectPromise;
+
+              // Send all messages with a 1-minute gap between each
+              for (const text of messages) {
+                jest.advanceTimersByTime(60_000); // 1 minute
+                manager.send({ sessionId: 'session-p6', text });
+              }
+
+              // After the last send, advance 2 min 59 sec — still connected
+              jest.advanceTimersByTime(2 * 60 * 1000 + 59 * 1000);
+              expect(manager.isConnected('session-p6')).toBe(true);
+              expect(reasons.includes('INACTIVITY_TIMEOUT')).toBe(false);
+
+              // Advance 1 more second (3 min since last send) — now disconnected
+              jest.advanceTimersByTime(1_000);
+              expect(manager.isConnected('session-p6')).toBe(false);
+              expect(reasons.includes('INACTIVITY_TIMEOUT')).toBe(true);
+            } finally {
+              jest.useRealTimers();
+            }
+          },
+        ),
+        { numRuns: 100 },
+      );
+    });
+  });
+
+  // ----------------------------------------------------------------
+  // Property 3: Audio chunks are forwarded immediately (fast-check)
+  // ----------------------------------------------------------------
+
+  describe('Property 3: Audio chunks are forwarded immediately', () => {
+    // Feature: murf-ai-voice-integration, Property 3: Audio chunks are forwarded immediately
+    it('forwards each audio chunk to onAudioChunk before the next chunk is processed', async () => {
+      // Validates: Requirement 3.2
+      await fc.assert(
+        fc.asyncProperty(
+          fc.array(fc.uint8Array()),
+          async (chunkArrays) => {
+            jest.useFakeTimers();
+            try {
+              const ws = createMockWebSocket();
+              const { manager } = buildManager([ws]);
+
+              const received: ArrayBuffer[] = [];
+              manager.onAudioChunk = (chunk) => received.push(chunk);
+
+              const connectPromise = manager.connect('session-p3');
+              ws.simulateOpen();
+              await connectPromise;
+
+              // Convert each Uint8Array to ArrayBuffer and simulate receiving it
+              const buffers = chunkArrays.map((arr) => arr.buffer as ArrayBuffer);
+              for (const buf of buffers) {
+                ws.simulateMessage(buf);
+              }
+
+              // Every chunk must have been forwarded immediately (no buffering)
+              expect(received).toHaveLength(buffers.length);
+              for (let i = 0; i < buffers.length; i++) {
+                expect(received[i]).toBe(buffers[i]);
+              }
             } finally {
               jest.useRealTimers();
             }

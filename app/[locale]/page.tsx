@@ -1,56 +1,80 @@
-import { getTranslations } from 'next-intl/server';
+import dynamic from 'next/dynamic';
 import Navigation from '@/components/layout/Navigation';
 import Footer from '@/components/layout/Footer';
 import HeroSection from '@/components/sections/HeroSection';
-import { FeaturesSection } from '@/components/sections/FeaturesSection';
-import { HowItWorksSection } from '@/components/sections/HowItWorksSection';
-import IntegrationsSection from '@/components/sections/IntegrationsSection';
-import TestimonialsSection from '@/components/sections/TestimonialsSection';
-import PricingSection from '@/components/sections/PricingSection';
+
+const StatsSection = dynamic(
+  () => import('@/components/sections/StatsSection'),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const FeaturesSection = dynamic(
+  () => import('@/components/sections/FeaturesSection').then((m) => ({ default: m.FeaturesSection })),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const VoiceDemoSection = dynamic(
+  () => import('@/components/sections/VoiceDemoSection'),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const HowItWorksSection = dynamic(
+  () => import('@/components/sections/HowItWorksSection').then((m) => ({ default: m.HowItWorksSection })),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const DemoSection = dynamic(
+  () => import('@/components/sections/DemoSection'),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const IntegrationsSection = dynamic(
+  () => import('@/components/sections/IntegrationsSection'),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const TestimonialsSection = dynamic(
+  () => import('@/components/sections/TestimonialsSection'),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const PricingSection = dynamic(
+  () => import('@/components/sections/PricingSection'),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const FAQSection = dynamic(
+  () => import('@/components/sections/FAQSection'),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
+
+const CTASection = dynamic(
+  () => import('@/components/sections/CTASection'),
+  { loading: () => <div className="h-32 animate-pulse bg-gray-800" /> }
+);
 
 interface PageProps {
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }
 
-export default async function HomePage({ params: { locale } }: PageProps) {
-  const tNav = await getTranslations({ locale, namespace: 'nav' });
-  const tHero = await getTranslations({ locale, namespace: 'hero' });
-
-  const navLinks = [
-    { label: tNav('features'), href: '#features' },
-    { label: tNav('howItWorks'), href: '#how-it-works' },
-    { label: tNav('integrations'), href: '#integrations' },
-    { label: tNav('testimonials'), href: '#testimonials' },
-    { label: tNav('pricing'), href: '#pricing' },
-  ];
-
-  const trustIndicators = [
-    { label: tHero('trustUsers'), value: '50,000+' },
-    { label: tHero('trustRating'), value: '4.8★' },
-    { label: tHero('trustAward'), value: '🏆' },
-  ];
+export default async function HomePage({ params }: PageProps) {
+  await params;
 
   return (
     <>
-      <Navigation
-        links={navLinks}
-        ctaLabel={tNav('cta')}
-        ctaHref="#pricing"
-      />
+      <Navigation />
       <main id="main-content">
-        <HeroSection
-          headline={tHero('headline')}
-          subheadline={tHero('subheadline')}
-          ctaLabel={tHero('cta')}
-          ctaHref="/signup"
-          trustIndicators={trustIndicators}
-          visualSrc="/images/hero-visual.png"
-        />
+        <HeroSection visualSrc="/images/hero-visual.png" />
+        <StatsSection />
         <FeaturesSection />
+        <VoiceDemoSection />
         <HowItWorksSection />
+        <DemoSection />
         <IntegrationsSection />
         <TestimonialsSection />
         <PricingSection />
+        <FAQSection />
+        <CTASection />
       </main>
       <Footer />
     </>
